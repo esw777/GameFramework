@@ -5,6 +5,8 @@ Beginnings of a framework for a tile based base builder type game.
 
 Built using the Unity Engine. C#. Visual Studios.
 
+Note: Files in the Utility folder are 3rd party code and libraries.
+
 Currently implemented:
 
 1. A* pathfinding
