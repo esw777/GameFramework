@@ -50,13 +50,15 @@ public class TileSpriteController : MonoBehaviour
                 SpriteRenderer sr = tile_go.AddComponent<SpriteRenderer>();
                 sr.sprite = emptySprite;
                 sr.sortingLayerName = "Tiles";
+
+                OnTileChanged(tile_data);
             }
         }
 
         world.RegisterTileChangedCallback(OnTileChanged);
     }
 
-    // THIS IS AN EXAMPLE -- NOT CURRENTLY USED (and probably out of date)
+    // Test/Debug function -- TODO remove
     void DestroyAllTileGameObjects()
     {
         // This function might get called when we are changing floors/levels.

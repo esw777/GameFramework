@@ -26,6 +26,12 @@ public class FurnitureSpriteController : MonoBehaviour
         furnitureGameObjectMap = new Dictionary<Furniture, GameObject>();
 
         world.RegisterFurnitureCreated(OnFurnitureCreated);
+
+        //If world was loaded from a save file, there will be existing furniture.
+        foreach (Furniture furn in world.furnitureList)
+        {
+            OnFurnitureCreated(furn);
+        }
     }
 
     void LoadSprites()
@@ -33,7 +39,7 @@ public class FurnitureSpriteController : MonoBehaviour
         furnitureSprites = new Dictionary<string, Sprite>();
         Sprite[] sprites = Resources.LoadAll<Sprite>("Images/Furniture/");
 
-        Debug.Log("LOADED RESOURCE:");
+        //Debug.Log("LOADED RESOURCE:");
         foreach (Sprite s in sprites)
         {
             //Debug.Log(s);

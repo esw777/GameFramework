@@ -26,18 +26,18 @@ public class CharacterSpriteController : MonoBehaviour
         // Instantiate our dictionary that tracks which GameObject is rendering which Tile data.
         characterGameObjectMap = new Dictionary<Character, GameObject>();
 
-        //temp TODO
-        Character c = world.createCharacter(world.GetTileAt(world.Width / 2, world.Height / 2));
-
-        //c.setDestinationTile(world.GetTileAt(c.currTile.X + 5, c.currTile.Y));
-
+        //If world was loaded from a save file, there will be existing characters.
+        foreach(Character c in world.characterList)
+        {
+            OnCharacterCreated(c);
+        }
     }
     void LoadSprites()
     {
         characterSprites = new Dictionary<string, Sprite>();
         Sprite[] sprites = Resources.LoadAll<Sprite>("Images/Characters/");
 
-        Debug.Log("LOADED RESOURCE:");
+       // Debug.Log("LOADED RESOURCE:");
         foreach (Sprite s in sprites)
         {
             //Debug.Log(s);

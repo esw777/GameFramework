@@ -34,7 +34,7 @@ public class BuildModeController : MonoBehaviour
 
                 t.pendingFurnitureJob = j;
 
-                //TODO wtf is this crap
+                //TODO has to be more simple way to do this
                 j.RegisterJobCancelCallback((theJob) =>
                 {
                     theJob.tile.pendingFurnitureJob = null;
@@ -42,7 +42,7 @@ public class BuildModeController : MonoBehaviour
                 }
                 );
 
-                WorldController.Instance.world.jobQueue.Enqueue(j);
+                WorldController.Instance.world.jobQueue.Enqueue(j, true);
             }
         }
         else

@@ -1,8 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
+using System.Xml;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 
-public class Character
+public class Character : IXmlSerializable
 {
     public float X
     {
@@ -60,8 +63,9 @@ public class Character
                 myJob.RegisterJobCompleteCallback(OnJobEnded);
             }
         }
-
-        if (currTile == destTile || currTile.IsNeighbour(destTile, true))
+        
+        // Do not try to do work right after getting a new job. Needs to run through pathfinding to see if job is valid.
+        else if (currTile == destTile || currTile.IsNeighbour(destTile, true))
         {
             //Don't need to move
             if (myJob != null)
@@ -77,7 +81,7 @@ public class Character
 
     void Tick_DoMovement(float deltaTime)
     {
-        if (currTile == destTile)
+        if (currTile == destTile || myJob == null)
         {
             pathAStar = null;
             return; //false; //No movement action is needed.
@@ -85,7 +89,7 @@ public class Character
 
         if (nextTile == null || nextTile == currTile)
         {
-            if (pathAStar == null || pathAStar.Length() == 0)
+            if (pathAStar == null || pathAStar.Length() == 0) 
             {
                 //Generate new path
                 pathAStar = new Path_AStar(currTile.world, currTile, destTile, myJob.characterStandOnTile);
@@ -94,7 +98,6 @@ public class Character
                     Debug.LogError("Character: Tick_DoMovement: Path_AStar returned no path to dest");
                     //TODO requeue job or something instead of destroying it
                     AbandonJob();
-                    pathAStar = null;
                     return;
                 }
 
@@ -102,10 +105,12 @@ public class Character
             //Path exists, get next tile to move to
             nextTile = pathAStar.DequeueTile();
 
+            /*
             if (nextTile == currTile)
             {
                 Debug.LogError("Character: Tick_DoMovement: nextTile = curTile??");
             }
+            */
 
         }
 
@@ -126,12 +131,6 @@ public class Character
             //reached destination tile
             currTile = nextTile;
             movementPercentage = 0;
-
-            //Get next tile from pathfinding system
-            //If return is null, we have reached destination.
-
-            //TODO callback for reached destination?
-            //TODO retain extra move past destination?
         }
 
         return; //true;
@@ -142,7 +141,9 @@ public class Character
     {
         nextTile = destTile = currTile;
         pathAStar = null;
-        currTile.world.jobQueue.Enqueue(myJob);
+        currTile.world.jobQueue.Enqueue(myJob, false);
+        myJob.UnregisterJobCancelCallback(OnJobEnded);
+        myJob.UnregisterJobCompleteCallback(OnJobEnded);
         myJob = null;
     }
 
@@ -167,6 +168,29 @@ public class Character
         destTile = tile;
     }
 
+    #region SaveLoadCode
+    public Character() { } //Should only be used for serialization
+
+    public XmlSchema GetSchema()
+    {
+        return null;
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+        writer.WriteAttributeString("X", currTile.X.ToString());
+        writer.WriteAttributeString("Y", currTile.Y.ToString());
+
+    }
+
+    public void ReadXml(XmlReader reader)
+    {
+        //nothing here currently
+
+    }
+
+    #endregion
+    
     #region Callbacks
     public void RegisterCharacterChangedCallback(Action<Character> cb)
     {

@@ -13,11 +13,12 @@ public class JobQueue
         jobQueue = new Queue<Job>();
     }
 
-    public void Enqueue(Job j)
+    // newJob = false when the job has been abandoned and needs to be put back into the queue.
+    public void Enqueue(Job j, bool newJob)
     {
         jobQueue.Enqueue(j);
 
-        if (cbJobCreated != null)
+        if (cbJobCreated != null && newJob)
         {
             cbJobCreated(j);
         }

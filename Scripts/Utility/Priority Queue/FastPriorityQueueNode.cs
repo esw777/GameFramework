@@ -1,4 +1,8 @@
-﻿namespace Priority_Queue
+﻿//Used under The MIT License (MIT) Copyright(c) 2013 Daniel "BlueRaja" Pflughoeft
+//https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp
+//
+
+namespace Priority_Queue
 {
     public class FastPriorityQueueNode
     {

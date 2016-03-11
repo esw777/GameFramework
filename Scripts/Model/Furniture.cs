@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
+using System.Xml;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 
 // InstalledObjects are things like walls, doors, and furniture (e.g. a sofa)
 
-public class Furniture
+public class Furniture : IXmlSerializable
 {
 
 	// This represents the BASE tile of the object -- but in practice, large objects may actually occupy
@@ -21,7 +24,7 @@ public class Furniture
 	// SPECIAL: If movementCost = 0, then this tile is impassible. (e.g. a wall).
 	public float movementCost; 
 
-	// For example, a sofa might be 3x2 (actual graphics only appear to cover the 3x1 area, but the extra row is for leg room.)
+	// For example, a table might be 3x2
 	int width;
 	int height;
 
@@ -34,7 +37,8 @@ public class Furniture
 	// TODO: Implement larger objects
 	// TODO: Implement object rotation
 
-	protected Furniture()
+    //public due to serializer reqs
+	public Furniture()
     {
 		
 	}
@@ -54,72 +58,73 @@ public class Furniture
 		return obj;
 	}
 
-	static public Furniture PlaceInstance( Furniture proto, Tile tile )
+    static public Furniture PlaceInstance(Furniture proto, Tile tile)
     {
-        if(proto.funcPositionValidation(tile) == false)
+        if (proto.funcPositionValidation(tile) == false)
         {
             Debug.LogError("Furniture - PlaceInstance - Invalid Position.");
             return null;
         }
 
-		Furniture obj = new Furniture();
+        Furniture obj = new Furniture();
 
-		obj.objectType = proto.objectType;
-		obj.movementCost = proto.movementCost;
-		obj.width = proto.width;
-		obj.height = proto.height;
-		obj.linksToNeighbour = proto.linksToNeighbour;
+        obj.objectType = proto.objectType;
+        obj.movementCost = proto.movementCost;
+        obj.width = proto.width;
+        obj.height = proto.height;
+        obj.linksToNeighbour = proto.linksToNeighbour;
 
-		obj.tile = tile;
+        obj.tile = tile;
 
-		// FIXME: This assumes we are 1x1!
-		if( tile.PlaceFurniture(obj) == false )
+        // FIXME: This assumes we are 1x1!
+        if (tile.PlaceFurniture(obj) == false)
         {
-			// For some reason, we weren't able to place our object in this tile.
-			// (Probably it was already occupied.)
+            // For some reason, we weren't able to place our object in this tile.
+            // (Probably it was already occupied.)
 
-			// Do NOT return our newly instantiated object.
-			// (It will be garbage collected.)
-			return null;
-		}
+            // Do NOT return our newly instantiated object.
+            // (It will be garbage collected.)
+            return null;
+        }
 
-		if(obj.linksToNeighbour)
+        if (obj.linksToNeighbour)
         {
-			// This type of furniture links itself to its neighbours,
-			// so we should inform our neighbours that they have a new
-			// buddy.  Just trigger their OnChangedCallback.
+            // This type of furniture links itself to its neighbours,
+            // so we should inform our neighbours that they have a new
+            // buddy.  Just trigger their OnChangedCallback.
 
-			Tile t;
-			int x = tile.X;
-			int y = tile.Y;
+            Tile t;
+            int x = tile.X;
+            int y = tile.Y;
 
-			t = tile.world.GetTileAt(x, y+1);
-			if(t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+            t = tile.world.GetTileAt(x, y + 1);
+            if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
-				// We have a Northern Neighbour with the same object type as us, so
-				// tell it that it has changed by firing is callback.
-				t.furniture.cbOnChanged(t.furniture);
-			}
-			t = tile.world.GetTileAt(x+1, y);
-			if(t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+                // We have a Northern Neighbour
+                t.furniture.cbOnChanged(t.furniture);
+            }
+            t = tile.world.GetTileAt(x + 1, y);
+            if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
-				t.furniture.cbOnChanged(t.furniture);
-			}
-			t = tile.world.GetTileAt(x, y-1);
-			if(t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+                // We have a Eastern Neighbour
+                t.furniture.cbOnChanged(t.furniture);
+            }
+            t = tile.world.GetTileAt(x, y - 1);
+            if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
-				t.furniture.cbOnChanged(t.furniture);
-			}
-			t = tile.world.GetTileAt(x-1, y);
-			if(t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+                // We have a Southern Neighbour
+                t.furniture.cbOnChanged(t.furniture);
+            }
+            t = tile.world.GetTileAt(x - 1, y);
+            if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
-				t.furniture.cbOnChanged(t.furniture);
-			}
+                // We have a Western Neighbour
+                t.furniture.cbOnChanged(t.furniture);
+            }
+        }//endif
 
-		}
-
-		return obj;
-	}
+        return obj;
+    }//end PlaceInstance()
 
     public bool IsValidPosition(Tile t)
     {
@@ -151,7 +156,30 @@ public class Furniture
         return true;
     }
 
+    #region SaveLoadCode
+    //For serializer - must be parameter-less
 
+    public XmlSchema GetSchema()
+    {
+        return null;
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+        writer.WriteAttributeString("X", tile.X.ToString());
+        writer.WriteAttributeString("Y", tile.Y.ToString());
+        writer.WriteAttributeString("objectType", objectType);
+        writer.WriteAttributeString("movementCost", movementCost.ToString());
+
+    }
+
+    public void ReadXml(XmlReader reader)
+    {
+        //X, Y, and objectType should have already been set before this function is called.
+        movementCost = int.Parse(reader.GetAttribute("movementCost"));
+    }
+
+    #endregion
 
     #region callbacks
     public void RegisterOnChangedCallback(Action<Furniture> callbackFunc)

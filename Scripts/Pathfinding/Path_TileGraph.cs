@@ -1,10 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Creates a simple path-finding compatable graph of the world.
-/// Each tile is a node. Each walkable neighbour from a tile is linked via edge connection.
-/// </summary>
+// Creates a simple path-finding compatable graph of the world.
+// Each tile is a node. Each walkable neighbour from a tile is linked via edge connection.
 public class Path_TileGraph
 {
     public Dictionary<Tile, Path_Node<Tile>> nodes;
@@ -49,6 +47,14 @@ public class Path_TileGraph
             {
                 if (neighbours[i] != null && neighbours[i].movementCost > 0)
                 {
+                    //Check if moving diagonally will cause graphics clipping.
+                    if (WouldClipCorner(t, neighbours[i]))
+                    {
+                        continue; //skip this edge, would cause graphics clipping on diagonals.
+                    }
+
+                    //All good, create the edge.
+
                     Path_Edge<Tile> e = new Path_Edge<Tile>();
                     e.cost = neighbours[i].movementCost;
                     e.node = nodes[ neighbours[i] ];
@@ -67,6 +73,33 @@ public class Path_TileGraph
         Debug.Log("Path_TileGraph: Created " + edgeCount + "edges.");
 
     } //end Path_TileGraph constructor
+
+    //Check to see if tiles around a diagonal are also walkable
+    bool WouldClipCorner( Tile currentTile, Tile neightbour)
+    {
+        //Guaranteed to be neighbors. Meaning max distance in x and y are both 1. 1+1 = 2.
+        if (Mathf.Abs(currentTile.X - neightbour.X) + Mathf.Abs(currentTile.Y - neightbour.Y) == 2)
+        {
+            //This is a diagonal connection
+            int dX = currentTile.X - neightbour.X;
+            int dY = currentTile.Y - neightbour.Y;
+
+            //Check tiles to East or West.
+            if (currentTile.world.GetTileAt(currentTile.X - dX, currentTile.Y).movementCost == 0)
+            {
+                //Unwalkable
+                return true;
+            }
+            //Check tiles to North and South
+            if (currentTile.world.GetTileAt(currentTile.Y - dY, currentTile.X).movementCost == 0)
+            {
+                //Unwalkable
+                return true;
+            }
+        }
+
+        return false;
+    }
 
 
 } //end Path_TileGraph Class

@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
+using System.Xml;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 
 // TileType is the base type of the tile. In some tile-based games, that might be
 // the terrain type. For us, we only need to differentiate between empty space
@@ -8,7 +11,7 @@ using System;
 // InstalledObjects sitting on top of the floor.
 public enum TileType { Empty, Floor };
 
-public class Tile
+public class Tile : IXmlSerializable
 {
 	private TileType _type = TileType.Empty;
 	public TileType Type
@@ -56,12 +59,7 @@ public class Tile
 	// The function we callback any time our type changes
 	Action<Tile> cbTileChanged;
 
-	/// <summary>
-	/// Initializes a new instance of the <see cref="Tile"/> class.
-	/// </summary>
-	/// <param name="world">A World instance.</param>
-	/// <param name="x">The x coordinate.</param>
-	/// <param name="y">The y coordinate.</param>
+	// Initializes a new instance of the Tile class
 	public Tile( World world, int x, int y )
     {
 		this.world = world;
@@ -69,17 +67,13 @@ public class Tile
 		this.Y = y;
 	}
 
-	/// <summary>
-	/// Register a function to be called back when our tile type changes.
-	/// </summary>
+	// Registers a function to be called back when our tile type changes.
 	public void RegisterTileTypeChangedCallback(Action<Tile> callback)
     {
         cbTileChanged += callback;
 	}
 	
-	/// <summary>
-	/// Unregister a callback.
-	/// </summary>
+	// Unregisters a callback.
 	public void UnregisterTileTypeChangedCallback(Action<Tile> callback)
     {
         cbTileChanged -= callback;
@@ -157,11 +151,11 @@ public class Tile
         return false;
     }
 
-    public Tile[] GetNeighbours( bool diagOk = false)
+    public Tile[] GetNeighbours( bool diagMovementAllowed = false)
     {
         Tile[] ns;
 
-        if (diagOk == false)
+        if (diagMovementAllowed == false)
         {
             ns = new Tile[4]; // Tile order: N E S W
         }
@@ -186,7 +180,7 @@ public class Tile
         n = world.GetTileAt(X - 1, Y);
         ns[3] = n;
 
-        if (diagOk)
+        if (diagMovementAllowed)
         {
             //NE
             n = world.GetTileAt(X + 1, Y + 1);
@@ -204,5 +198,30 @@ public class Tile
 
         return ns;
     }
+
+    #region SaveLoadCode
+    public XmlSchema GetSchema()
+    {
+        return null;
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+        //Save Tile Data
+        writer.WriteAttributeString("X", X.ToString());
+        writer.WriteAttributeString("Y", Y.ToString());
+        writer.WriteAttributeString("Type", ((int)Type).ToString());
+
+    }
+
+    public void ReadXml(XmlReader reader)
+    {
+        //Load Tile Data
+        Type = (TileType)int.Parse(reader.GetAttribute("Type"));
+
+
+    }
+
+    #endregion
 
 }
