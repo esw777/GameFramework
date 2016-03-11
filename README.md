@@ -11,7 +11,7 @@ Currently implemented:
 
 2. Job queue
 
-3. Basic UI
+3. Basic UI - buttons to queue "build wall" jobs. Couple debug buttons.
 
 4. Two types of objects - built objects (walls/tables/furniture) and loose objects (swords, clothes, ore.)
 
@@ -29,3 +29,5 @@ TODO:
 5. Add priorities to job system - Add intelligent job picking ai - prefer closer jobs, jobs that character has higher skills in. Sleep/Eat over "work" jobs.
 
 6. Put objects and other stuff into external files to increase modability.
+
+7. Expand UI along the way.
