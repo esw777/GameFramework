@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 using System;
 using System.Xml;
 using System.Xml.Schema;
@@ -9,6 +9,18 @@ using System.Xml.Serialization;
 
 public class Furniture : IXmlSerializable
 {
+    public Dictionary<string, float> furnitureParameters;
+    public Action<Furniture, float> updateActions;
+
+    public Func<Furniture, Enterability> IsEnterable;
+
+    public void tick(float deltaTime)
+    {
+        if (updateActions != null)
+        {
+            updateActions(this, deltaTime);
+        }
+    }
 
 	// This represents the BASE tile of the object -- but in practice, large objects may actually occupy
 	// multile tiles.
@@ -37,26 +49,48 @@ public class Furniture : IXmlSerializable
 	// TODO: Implement larger objects
 	// TODO: Implement object rotation
 
-    //public due to serializer reqs
+    //public due to serializer reqs 
 	public Furniture()
     {
-		
+        furnitureParameters = new Dictionary<string, float>();
 	}
 
-	static public Furniture CreatePrototype( string objectType, float movementCost = 1f, int width=1, int height=1, bool linksToNeighbour=false )
+    //Copy constructor
+    protected Furniture(Furniture furn)
     {
-		Furniture obj = new Furniture();
+        this.objectType = furn.objectType;
+        this.movementCost = furn.movementCost;
+        this.width = furn.width;
+        this.height = furn.height;
+        this.linksToNeighbour = furn.linksToNeighbour;
 
-		obj.objectType = objectType;
-		obj.movementCost = movementCost;
-		obj.width = width;
-		obj.height = height;
-		obj.linksToNeighbour = linksToNeighbour;
+        this.furnitureParameters = new Dictionary<string, float>(furn.furnitureParameters);
 
-        obj.funcPositionValidation = obj.__IsValidPosition;
+        if (furn.updateActions != null)
+        {
+            this.updateActions = (Action<Furniture, float>)furn.updateActions.Clone();
+        }
 
-		return obj;
-	}
+        this.IsEnterable = furn.IsEnterable;
+    }
+
+    virtual public Furniture Clone()
+    {
+        return new Furniture(this);
+    }
+
+	public Furniture( string objectType, float movementCost = 1f, int width=1, int height=1, bool linksToNeighbour=false )
+    {
+		this.objectType = objectType;
+        this.movementCost = movementCost;
+        this.width = width;
+        this.height = height;
+        this.linksToNeighbour = linksToNeighbour;
+
+        this.funcPositionValidation = this.__IsValidPosition;
+
+        furnitureParameters = new Dictionary<string, float>();
+    }
 
     static public Furniture PlaceInstance(Furniture proto, Tile tile)
     {
@@ -66,14 +100,7 @@ public class Furniture : IXmlSerializable
             return null;
         }
 
-        Furniture obj = new Furniture();
-
-        obj.objectType = proto.objectType;
-        obj.movementCost = proto.movementCost;
-        obj.width = proto.width;
-        obj.height = proto.height;
-        obj.linksToNeighbour = proto.linksToNeighbour;
-
+        Furniture obj = proto.Clone();
         obj.tile = tile;
 
         // FIXME: This assumes we are 1x1!
@@ -134,6 +161,12 @@ public class Furniture : IXmlSerializable
     //Returns true if object is able to be placed at x,y position.
     public bool __IsValidPosition(Tile t)
     {
+        if (t.furniture != null)
+        {
+            //Already something here
+            return false;
+        }
+
         if (t.Type != TileType.Floor)
         {
             //invalid position
@@ -169,14 +202,35 @@ public class Furniture : IXmlSerializable
         writer.WriteAttributeString("X", tile.X.ToString());
         writer.WriteAttributeString("Y", tile.Y.ToString());
         writer.WriteAttributeString("objectType", objectType);
-        writer.WriteAttributeString("movementCost", movementCost.ToString());
+
+        foreach( string k in furnitureParameters.Keys)
+        {
+            writer.WriteStartElement("Param");
+            writer.WriteAttributeString("name", k);
+            writer.WriteAttributeString("value", furnitureParameters[k].ToString()); //This is a bit iffy, test this more later.
+
+            writer.WriteEndElement();
+        }
+
+
 
     }
 
     public void ReadXml(XmlReader reader)
     {
         //X, Y, and objectType should have already been set before this function is called.
-        movementCost = int.Parse(reader.GetAttribute("movementCost"));
+
+        if (reader.ReadToDescendant("Param"))
+        {
+            do
+            {
+                string k = reader.GetAttribute("name");
+                float v = float.Parse(reader.GetAttribute("value"));
+                furnitureParameters[k] = v;
+            } while (reader.ReadToNextSibling("Param"));
+
+
+        }
     }
 
     #endregion

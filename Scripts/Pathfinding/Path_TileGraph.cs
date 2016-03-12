@@ -28,10 +28,10 @@ public class Path_TileGraph
             }
         }
 
-        Debug.Log("Path_TileGraph: Created " + nodes.Count + "nodes.");
+       // Debug.Log("Path_TileGraph: Created " + nodes.Count + "nodes.");
 
         //TODO Debug remove
-        int edgeCount = 0;
+       // int edgeCount = 0;
 
         foreach (Tile t in nodes.Keys)
         {
@@ -63,14 +63,14 @@ public class Path_TileGraph
                     edges.Add(e);
 
                     //TODO debug remove
-                    edgeCount++;
+                    //edgeCount++;
                 }
             }
 
             n.edges = edges.ToArray();
         }
         //TODO debug remove
-        Debug.Log("Path_TileGraph: Created " + edgeCount + "edges.");
+       // Debug.Log("Path_TileGraph: Created " + edgeCount + "edges.");
 
     } //end Path_TileGraph constructor
 

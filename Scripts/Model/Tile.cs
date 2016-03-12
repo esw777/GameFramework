@@ -11,6 +11,8 @@ using System.Xml.Serialization;
 // InstalledObjects sitting on top of the floor.
 public enum TileType { Empty, Floor };
 
+public enum Enterability { Yes, Never, Soon };
+
 public class Tile : IXmlSerializable
 {
 	private TileType _type = TileType.Empty;
@@ -197,6 +199,23 @@ public class Tile : IXmlSerializable
         }
 
         return ns;
+    }
+
+    public Enterability IsEnterable()
+    {
+        //Returns true if tile is not occupied
+        if (movementCost == 0)
+        {
+            return Enterability.Never;
+        }
+
+        //Check furniture if it has special conditions
+        if (furniture != null && furniture.IsEnterable != null)
+        {
+            return furniture.IsEnterable(furniture);
+        }
+
+        return Enterability.Yes;
     }
 
     #region SaveLoadCode

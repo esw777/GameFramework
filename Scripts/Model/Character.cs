@@ -96,29 +96,38 @@ public class Character : IXmlSerializable
                 if (pathAStar.Length() == 0)
                 {
                     Debug.LogError("Character: Tick_DoMovement: Path_AStar returned no path to dest");
-                    //TODO requeue job or something instead of destroying it
+                    //TODO Don't try to get same job over and over and spam creating paths if it fails.
                     AbandonJob();
                     return;
                 }
-
             }
             //Path exists, get next tile to move to
             nextTile = pathAStar.DequeueTile();
 
-            /*
-            if (nextTile == currTile)
+            //Verify path is still correct Need this because we divide by nextTile.movementCost later.
+            if (nextTile.movementCost == 0)
             {
-                Debug.LogError("Character: Tick_DoMovement: nextTile = curTile??");
+                //TODO handle this better. Should never get this far into the code. Need to regenerate path sooner.
+                //Likely a wall got built as the character tried to move onto tile.
+                Debug.LogError("Character is trying to move onto an unwalkable tile.");
+                nextTile = null;
+                pathAStar = null;
+                return;
             }
-            */
-
         }
 
-        //Distance from Tile A to Tile B
+        if (nextTile.IsEnterable() == Enterability.Soon)
+        {
+            //Need to wait a bit for tile to become available. Door opening for example.
+            //Return before moving the character. Character will sit at current location until Enterability = yes.
+            return;
+        }
+
+        //Distance from Tile A to Tile B //TODO bad sqrt
         float distToTravel = Mathf.Sqrt(Mathf.Pow(currTile.X - nextTile.X, 2) + Mathf.Pow(currTile.Y - nextTile.Y, 2));
 
         //How far can we go this update
-        float distThisFrame = speed * deltaTime;
+        float distThisFrame = speed / nextTile.movementCost * deltaTime;
 
         //How much is that in terms of percentage
         float percThisFram = distThisFrame / distToTravel;

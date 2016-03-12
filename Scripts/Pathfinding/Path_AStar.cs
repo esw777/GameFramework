@@ -93,7 +93,7 @@ public class Path_AStar
                     continue;  
                 }
 
-                //else
+                
                 Came_From[neighbour.node] = current;
                 g_score[neighbour.node] = temp_g_score;
                 f_score[neighbour.node] = g_score[neighbour.node] + heuristic_cost_estimate(neighbour.node, goal);
@@ -101,6 +101,11 @@ public class Path_AStar
                 if(OpenSet.Contains(neighbour.node) == false)
                 {
                     OpenSet.Enqueue(neighbour.node, f_score[neighbour.node]);
+                }
+
+                else
+                {
+                    OpenSet.UpdatePriority(neighbour.node, f_score[neighbour.node]);
                 }
 
             } //end foreach neighbour
