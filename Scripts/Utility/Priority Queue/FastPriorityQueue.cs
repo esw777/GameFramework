@@ -6,7 +6,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using UnityEngine; //TODO debug remove
 
 namespace Priority_Queue
 {
@@ -123,12 +122,7 @@ namespace Priority_Queue
             {
                 throw new InvalidOperationException("Node is already enqueued: " + node);
             }
-        #endif
-            //Custom additon need to verify speed hit
-            if (Count == MaxSize - 1)
-            {
-                Resize(MaxSize * 2 + 1);
-            }
+            #endif
 
             node.Priority = priority;
             _numNodes++;

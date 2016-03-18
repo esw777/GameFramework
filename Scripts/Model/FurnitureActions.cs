@@ -9,9 +9,9 @@ public static class FurnitureActions
 
         if (furn.furnitureParameters["is_opening"] >= 1)
         {
-            furn.furnitureParameters["openness"] += deltaTime * 4;
+            furn.furnitureParameters["openness"] += deltaTime;
 
-            if (furn.furnitureParameters["openness"] >= 1) //Stay open for a second
+            if (furn.furnitureParameters["openness"] >= 2) //Stay open for a second
             {
                 //Start closing the door.
                 furn.furnitureParameters["is_opening"] = 0;
@@ -20,16 +20,10 @@ public static class FurnitureActions
 
         else
         {
-            furn.furnitureParameters["openness"] -= deltaTime * 4;
+            furn.furnitureParameters["openness"] -= deltaTime;
         }
 
         furn.furnitureParameters["openness"] = Mathf.Clamp01(furn.furnitureParameters["openness"]);
-
-        //TODO this gets called every frame - bad
-        if (furn.cbOnChanged != null)
-        {
-            furn.cbOnChanged(furn);
-        }
     }
 
     public static Enterability Door_IsEnterable(Furniture furn)

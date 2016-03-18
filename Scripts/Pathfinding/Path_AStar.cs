@@ -38,8 +38,12 @@ public class Path_AStar
 
         HashSet<Path_Node<Tile>> ClosedSet = new HashSet<Path_Node<Tile>>();
 
-        //TODO revisit initial que size.
-        FastPriorityQueue<Path_Node<Tile>> OpenSet = new FastPriorityQueue<Path_Node<Tile>>(50); 
+        /*
+        List<Path_Node<Tile>> OpenSet = new List<Path_Node<Tile>>();
+        OpenSet.Add(start);
+        */
+
+        SimplePriorityQueue<Path_Node<Tile>> OpenSet = new SimplePriorityQueue<Path_Node<Tile>>();
         OpenSet.Enqueue(start, 0);
 
         Dictionary<Path_Node<Tile>, Path_Node<Tile>> Came_From = new Dictionary<Path_Node<Tile>, Path_Node<Tile>>();

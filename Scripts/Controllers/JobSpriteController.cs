@@ -40,21 +40,6 @@ public class JobSpriteController : MonoBehaviour
         sr.color = new Color(0.5f, 1f, 0.5f, 0.3f);
         sr.sortingLayerName = "Jobs";
 
-        //TODO more hacks to get sprites rotated.
-        if (job.jobObjectType == "Door")
-        {
-            //Check to see if door needs to be rotated 90 degrees to NS from EW
-            Tile northTile = job.tile.world.GetTileAt(job.tile.X, job.tile.Y + 1);
-            Tile southTile = job.tile.world.GetTileAt(job.tile.X, job.tile.Y - 1);
-
-            if (northTile != null && southTile != null && northTile.furniture != null && southTile.furniture != null &&
-                    northTile.furniture.objectType == "Wall" && southTile.furniture.objectType == "Wall")
-            {
-                job_go.transform.rotation = Quaternion.Euler(0, 0, 90);
-                job_go.transform.Translate(1f, 0, 0, Space.World); //TODO hack for pivot point not being center
-            }
-        }
-
         //TODO Only does furniture atm.
         job.RegisterJobCompleteCallback(OnJobEnded);
         job.RegisterJobCancelCallback(OnJobEnded);

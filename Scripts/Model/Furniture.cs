@@ -33,19 +33,16 @@ public class Furniture : IXmlSerializable
 	// Tile types and other environmental effects may be combined.
 	// For example, a "rough" tile (cost of 2) with a table (cost of 3) that is on fire (cost of 3)
 	// would have a total movement cost of (2+3+3 = 8), so you'd move through this tile at 1/8th normal speed.
-	// NOTE: If movementCost = 0, then this tile is impassible. (e.g. a wall).
-	public float movementCost { get; protected set; } 
+	// SPECIAL: If movementCost = 0, then this tile is impassible. (e.g. a wall).
+	public float movementCost; 
 
-    public bool isRoomBorder { get; protected set; }
-
-    // For example, a table might be 3x2
-    int width;
+	// For example, a table might be 3x2
+	int width;
 	int height;
 
 	public bool linksToNeighbour {get; protected set;}
 
-    //TODO make get/set functions for furnitureParameters and call onchanged in the set rather than make this public.
-    public Action<Furniture> cbOnChanged; 
+	Action<Furniture> cbOnChanged;
 
     Func<Tile, bool> funcPositionValidation;
 
@@ -63,7 +60,6 @@ public class Furniture : IXmlSerializable
     {
         this.objectType = furn.objectType;
         this.movementCost = furn.movementCost;
-        this.isRoomBorder = furn.isRoomBorder;
         this.width = furn.width;
         this.height = furn.height;
         this.linksToNeighbour = furn.linksToNeighbour;
@@ -83,11 +79,10 @@ public class Furniture : IXmlSerializable
         return new Furniture(this);
     }
 
-	public Furniture( string objectType, float movementCost = 1f, int width=1, int height=1, bool linksToNeighbour=false, bool isRoomBorder = false )
+	public Furniture( string objectType, float movementCost = 1f, int width=1, int height=1, bool linksToNeighbour=false )
     {
 		this.objectType = objectType;
         this.movementCost = movementCost;
-        this.isRoomBorder = isRoomBorder;
         this.width = width;
         this.height = height;
         this.linksToNeighbour = linksToNeighbour;

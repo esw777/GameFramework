@@ -16,7 +16,7 @@ public class BuildModeController : MonoBehaviour
 
     public void DoBuild(Tile t)
     {
-        if (buildModeIsObjects)
+        if (buildModeIsObjects == true)
         {
             string furnitureType = buildModeObjectType;
 

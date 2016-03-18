@@ -41,13 +41,8 @@ public class Tile : IXmlSerializable
     // We need to know the context in which we exist. Probably. Maybe.
     public World world { get; protected set; }
 
-    //The room that this tile is a part of
-    public Room room; // { get; protected set; }
-
-    public int X { get; protected set; }
+	public int X { get; protected set; }
 	public int Y { get; protected set; }
-
-    public const float baseTileMovementCost = 1f;
 
     public float movementCost
     {
@@ -57,9 +52,9 @@ public class Tile : IXmlSerializable
                 return 0; //not walkable
 
             if (furniture == null)
-                return baseTileMovementCost; //nothing on tile to impede movement
+                return 1; //nothing on tile to impede movement
 
-            return baseTileMovementCost * furniture.movementCost; // Get furniture cost multiplier
+            return 1 * furniture.movementCost; // Get furniture cost multiplier
         }
     }
 

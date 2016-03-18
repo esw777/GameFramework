@@ -1,7 +1,7 @@
-﻿using Priority_Queue;
+﻿using UnityEngine;
+using System.Collections;
 
-
-public class Path_Node<T> : FastPriorityQueueNode
+public class Path_Node<T>
 {
     public T data;
 

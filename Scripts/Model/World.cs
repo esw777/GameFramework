@@ -11,7 +11,6 @@ public class World : IXmlSerializable
 	Tile[,] tiles;
     public List<Character> characterList;
     public List<Furniture> furnitureList;
-    public List<Room> roomList;
 
     //The pathfinding graph used to navigate world.
     public Path_TileGraph tileGraph;
@@ -38,23 +37,6 @@ public class World : IXmlSerializable
         Character c = CreateCharacter(GetTileAt(Width / 2, Height / 2));
     }
 
-    //TODO make this better.
-    public Room GetOutsideRoom()
-    {
-        return roomList[0];
-    }
-
-    public void DeleteRoom(Room r)
-    {
-        if (r == GetOutsideRoom())
-        {
-            Debug.LogError("World:DeleteRoom: Trying to delete the outside room - bad.");
-            return;
-        }
-        r.UnAssignAllTiles();
-        roomList.Remove(r);
-    }
-
     public void SetupWorld(int width, int height)
     {
         Width = width;
@@ -64,8 +46,6 @@ public class World : IXmlSerializable
         tiles = new Tile[Width, Height];
         characterList = new List<Character>();
         furnitureList = new List<Furniture>();
-        roomList = new List<Room>();
-        roomList.Add(new Room()); //"Outside" is considered one giant room. An empty map will be one giant room.
 
         for (int x = 0; x < Width; x++)
         {
@@ -73,11 +53,10 @@ public class World : IXmlSerializable
             {
                 tiles[x, y] = new Tile(this, x, y);
                 tiles[x, y].RegisterTileTypeChangedCallback(OnTileChanged);
-                tiles[x, y].room = roomList[0]; //Room 0 is "outside" 
             }
         }
 
-        //Debug.Log("World created with " + (Width * Height) + " tiles.");
+        Debug.Log("World created with " + (Width * Height) + " tiles.");
 
         CreateFurniturePrototypes();
     }
@@ -107,9 +86,8 @@ public class World : IXmlSerializable
 								0,  // Movecost, 0 = impassable
                                 1,  // Width
 								1,  // Height
-								true, // Links to neighbours and "sort of" becomes part of a large object
-                                true  // isRoomBorder - the "Room" code will consider this furniture type a border
-                            )
+								true // Links to neighbours and "sort of" becomes part of a large object
+							)
 		);
         
         furniturePrototypes.Add("Door",
@@ -118,8 +96,7 @@ public class World : IXmlSerializable
                         2,  // Movecost
                         1,  // Width
                         1,  // Height
-                        true, // Links to neighbours and "sort of" becomes part of a large object
-                        true  // isRoomBorder - the "Room" code will consider this furniture type a border
+                        false // Links to neighbours and "sort of" becomes part of a large object
                     )
         );
 
@@ -222,24 +199,12 @@ public class World : IXmlSerializable
 
         furnitureList.Add(furn);
 
-        //Redefine rooms if needed
-        if (furn.isRoomBorder)
-        {
-            Room.DoRoomFloodFill(furn);
-        }
-
 		if(cbFurnitureCreated != null)
         {
 			cbFurnitureCreated(furn);
 		}
 
-        //Movement cost is determined by multiplying furnCost against the tileBaseCost. If these are equal, then tile movement cost is unchanged.
-        //Thus no reason to regenerate pathfinding.
-        if (furn.movementCost != Tile.baseTileMovementCost)
-        {
-            //Movement costs of tile has changed - affects pathfinding.
-            InvalidateTileGraph(); 
-        }
+        InvalidateTileGraph(); //Can result in a change of movement costs of tiles - affects pathfinding.
 
         //TODO find better place for this
         t.pendingFurnitureJob = null;

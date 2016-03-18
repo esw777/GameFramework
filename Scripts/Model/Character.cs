@@ -65,14 +65,18 @@ public class Character : IXmlSerializable
         }
         
         // Do not try to do work right after getting a new job. Needs to run through pathfinding to see if job is valid.
-        else if (myJob != null && (currTile == destTile || currTile.IsNeighbour(destTile, true)))
+        else if (currTile == destTile || currTile.IsNeighbour(destTile, true))
         {
-            //We have a job and are within the working distance.
-            myJob.DoWork(deltaTime);
-            return;
+            //Don't need to move
+            if (myJob != null)
+            {
+                myJob.DoWork(deltaTime);
+            }
+
+            return; // true; //work was done, no more character actions can be taken.
         }
 
-        return; 
+        return; // false; //work was done, no more character actions can be taken.
     }
 
     void Tick_DoMovement(float deltaTime)
