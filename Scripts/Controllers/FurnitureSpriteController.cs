@@ -64,6 +64,21 @@ public class FurnitureSpriteController : MonoBehaviour
         furn_go.transform.position = new Vector3(furn.tile.X, furn.tile.Y, 0);
         furn_go.transform.SetParent(this.transform, true);
 
+        //TODO more hardcoding that needs to be refactored
+        if (furn.objectType == "Door")
+        {
+            //Check to see if door needs to be rotated 90 degrees to NS from EW
+            Tile northTile = world.GetTileAt(furn.tile.X, furn.tile.Y + 1);
+            Tile southTile = world.GetTileAt(furn.tile.X, furn.tile.Y - 1);
+
+            if (northTile != null && southTile != null && northTile.furniture != null && southTile.furniture != null &&
+                    northTile.furniture.objectType == "Wall" && southTile.furniture.objectType == "Wall")
+            {
+                furn_go.transform.rotation = Quaternion.Euler(0, 0, 90);
+                furn_go.transform.Translate(1f, 0, 0, Space.World); //TODO hack for pivot point not being center
+            }
+        }
+
         SpriteRenderer sr = furn_go.AddComponent<SpriteRenderer>();
         sr.sprite = GetSpriteForFurniture(furn);
         sr.sortingLayerName = "Furniture";
@@ -90,43 +105,73 @@ public class FurnitureSpriteController : MonoBehaviour
         //Debug.Log(furn_go.GetComponent<SpriteRenderer>());
 
         furn_go.GetComponent<SpriteRenderer>().sprite = GetSpriteForFurniture(furn);
+
     }
 
-    public Sprite GetSpriteForFurniture(Furniture obj)
+    public Sprite GetSpriteForFurniture(Furniture furn)
     {
-        if (obj.linksToNeighbour == false)
+        string spriteName = furn.objectType;
+
+        if (furn.linksToNeighbour == false)
         {
-            return furnitureSprites[obj.objectType];
+            //TODO this function is getting rather large
+            if (furn.objectType == "Door")
+            {
+                if (furn.furnitureParameters["openness"] < 0.1f)
+                {
+                    //Door is closed
+                    spriteName = "Door_";
+                }
+
+                else if (furn.furnitureParameters["openness"] < 0.5f)
+                {
+                    //Partially open 1
+                    spriteName = "Door_openness_1";
+                }
+
+                else if (furn.furnitureParameters["openness"] < 0.9f)
+                {
+                    //Partially open 2
+                    spriteName = "Door_openness_2";
+                }
+
+                else
+                {
+                    //Fully open
+                    spriteName = "Door_openness_3";
+                }
+            }
+
+            return furnitureSprites[spriteName];
         }
 
-        // Otherwise, the sprite name is more complicated.
-
-        string spriteName = obj.objectType + "_";
+        // Sprite links to neightbor - the sprite name is more complicated.
+        spriteName += "_";
 
         // Check for neighbours North, East, South, West
 
-        int x = obj.tile.X;
-        int y = obj.tile.Y;
+        int x = furn.tile.X;
+        int y = furn.tile.Y;
 
         Tile t;
 
         t = world.GetTileAt(x, y + 1);
-        if (t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+        if (t != null && t.furniture != null && t.furniture.objectType == furn.objectType)
         {
             spriteName += "N";
         }
         t = world.GetTileAt(x + 1, y);
-        if (t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+        if (t != null && t.furniture != null && t.furniture.objectType == furn.objectType)
         {
             spriteName += "E";
         }
         t = world.GetTileAt(x, y - 1);
-        if (t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+        if (t != null && t.furniture != null && t.furniture.objectType == furn.objectType)
         {
             spriteName += "S";
         }
         t = world.GetTileAt(x - 1, y);
-        if (t != null && t.furniture != null && t.furniture.objectType == obj.objectType)
+        if (t != null && t.furniture != null && t.furniture.objectType == furn.objectType)
         {
             spriteName += "W";
         }
