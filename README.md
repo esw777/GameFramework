@@ -17,19 +17,25 @@ Currently implemented:
 
 4. Two types of objects - built objects (walls/tables/furniture) and loose objects (swords, clothes, ore.)
 
+5. Save/Load Map/characters/objects to XML
+
+
+In Progress:
+
+1. Adding a room system to enhance pathfinding as well as for features like room tempature.
+2. Flood fill algorithm to map out rooms.
+
 
 TODO:
 
-1. Save/Load.
+1. Map generation.
 
-2. Map generation.
+2. Character stats - hunger / sleep / etc.
 
-3. Character stats - hunger / sleep / etc.
+3. Additional objects + Expand on the loose object stuff to match complexity of built objects.
 
-4. Additional objects + Expand on the loose object stuff to match complexity of built objects.
+4. Add priorities to job system - Add intelligent job picking ai - prefer closer jobs, jobs that character has higher skills in. Sleep/Eat over "work" jobs.
 
-5. Add priorities to job system - Add intelligent job picking ai - prefer closer jobs, jobs that character has higher skills in. Sleep/Eat over "work" jobs.
+5. Put objects and other stuff into external files to increase modability.
 
-6. Put objects and other stuff into external files to increase modability.
-
-7. Expand UI along the way.
+6. Expand UI along the way.
