@@ -23,6 +23,17 @@ public class MouseController : MonoBehaviour
         bmc = GameObject.FindObjectOfType<BuildModeController>();
     }
 
+    //Returns mouse position in world space
+    public Vector3 GetMousePosition()
+    {
+        return currFramePosition;
+    }
+
+    public Tile GetTileUnderMouse()
+    {
+        return WorldController.Instance.world.GetTileAt((int)currFramePosition.x, (int)currFramePosition.y);
+    }
+
     // Update is called once per frame
     void Update()
     {

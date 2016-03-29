@@ -7,6 +7,8 @@ public class Room
     public float temperature = 0f;
     public float oxygen = 0f;
 
+    public string roomName = "defualt";
+
     List<Tile> tiles;
 
     public Room()
@@ -18,40 +20,159 @@ public class Room
     {
         if (tiles.Contains(t))
         {
+            //Tile already in this room.
             return;
+        }
+
+        if (t.room != null)
+        {
+            //Remove tile from previous room.
+            t.room.tiles.Remove(t);
         }
 
         t.room = this;
         tiles.Add(t);
     }
 
+    public void UnAssignTile(Tile t)
+    {
+        if (t.room != t.world.GetOutsideRoom())
+        {
+            tiles.Remove(t);
+        }
+    }
+
+    //Assigns all tiles to "Outside" room
     public void UnAssignAllTiles()
     {
         for (int i = 0; i < tiles.Count; i++)
         {
             tiles[i].room = tiles[i].world.GetOutsideRoom();
         }
-        tiles = null;
         tiles = new List<Tile>();
     }
 
-    public static void DoRoomFloodFill(Furniture sourceFurniture)
+    public static void ReCalculateRooms(Furniture sourceFurniture)
     {
+        //TODO if FloodFill algorithm is used, it destroys the existing room regardless. This is potentially bad
+
         //sourceFurniture is the new piece of furniture potentially causing new rooms to be formed.
-        //Check NESW neighbours of the furniture's tile.
+        //Check neighbours of the furniture's tile.
         //Do floodfill algorithm to find new rooms.
 
-        //TODO consider something like the following if optimization is needed
         //If neighbouring furniture to N and S or E and W are also considered roomBorders, recalculate room.
         //Else the new sourceFurniture will not have created a new room. 
-
-        //Delete current room if not outside
-        if (sourceFurniture.tile.room != sourceFurniture.tile.world.GetOutsideRoom())
+        Tile[] neighbors = sourceFurniture.tile.GetNeighbours(true);
+        
+        int NeighboringWallCounter = 0;
+        for (int i = 0; i < neighbors.Length && NeighboringWallCounter != 2; i++)
         {
-            sourceFurniture.tile.world.DeleteRoom(sourceFurniture.tile.room); //Assigns all tiles in current room to the outside room
+            if (neighbors[i].furniture != null && neighbors[i].furniture.isRoomBorder)
+            {
+                NeighboringWallCounter++;
+            }
+        }
+        
+        //Not possible for a new room to have been created, no need to recalculate rooms.
+        if (NeighboringWallCounter < 2)
+        {
+            //Remove the affected tile from its' room.
+            sourceFurniture.tile.room.UnAssignTile(sourceFurniture.tile);
+            sourceFurniture.tile.room = null;
+            return;
+        }
+        
+        //We have at least 2 "wall" neighbours. Can cause a new room to be created.
+
+        Room oldRoom = sourceFurniture.tile.room;
+
+        //Start FloodFill 
+        foreach (Tile t in neighbors)
+        {
+            DoFloodFill(t, oldRoom);
         }
 
-        //Do floodfill to find new room structure
+        sourceFurniture.tile.room = null;
+        oldRoom.tiles.Remove(sourceFurniture.tile);
+
+        //Delete current room if not outside
+        if (oldRoom != sourceFurniture.tile.world.GetOutsideRoom())
+        {
+            //Old room should have 0 tiles assigned to it at this point.
+            //So should only result in this room being removed from world's room list.
+
+            //TODO debug
+            if (oldRoom.tiles.Count > 0)
+            {
+                Debug.LogError("Room:ReCalculateRooms: Room about to be deleted still has tiles.");
+            }
+
+            sourceFurniture.tile.world.DeleteRoom(oldRoom);
+        }
     }
 
-}
+    protected static void DoFloodFill(Tile tile, Room oldRoom)
+    {
+        if (tile == null)
+        {
+            //Probably called by a tile on the edge of the map
+            return;
+        }
+
+        if (tile.room != oldRoom)
+        {
+            //This tile was already assigned to a new room by a previous iteration of the flood fill.
+            return;
+        }
+
+        if (tile.furniture != null && tile.furniture.isRoomBorder)
+        {
+            //This tile is a wall/door/RoomBorder. If a tile is a border, it cannot be a part of the room.
+            return;
+        }
+
+        if (tile.Type == TileType.Empty)
+        {
+            //This tile has no floor - has nothing built on it = outside.
+            return;
+        }
+
+        //At this point, we have a valid tile that needs to be put into a new room.
+        Room newRoom = new Room();
+        Queue<Tile> tilesToCheckQueue = new Queue<Tile>();
+        tilesToCheckQueue.Enqueue(tile);
+
+        while(tilesToCheckQueue.Count > 0)
+        {
+            Tile t = tilesToCheckQueue.Dequeue();
+
+            if (t.room == oldRoom)
+            {
+                newRoom.AssignTile(t);
+
+                Tile[] tileNeighbours = t.GetNeighbours();
+
+                foreach (Tile t2 in tileNeighbours)
+                {
+                    if (t2 == null || t2.Type == TileType.Empty)
+                    {
+                        //We have hit edge of map or "outside"
+                        //So this new room is actually just the outside.
+                        //So we can bail out of the floodfill and delete the inProgress newRoom and reassign to outside.
+
+                        newRoom.UnAssignAllTiles();
+                        return;
+                    }
+
+                    if (t2.room == oldRoom && (t2.furniture == null || t2.furniture.isRoomBorder == false))
+                    {
+                        tilesToCheckQueue.Enqueue(t2);
+                    }
+                } //foreach
+            } //if
+        } //while
+
+        tile.world.AddRoom(newRoom);
+
+    } //DoFloodFill
+}//Class room

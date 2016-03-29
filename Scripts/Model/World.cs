@@ -44,6 +44,11 @@ public class World : IXmlSerializable
         return roomList[0];
     }
 
+    public void AddRoom(Room r)
+    {
+        roomList.Add(r);
+    }
+
     public void DeleteRoom(Room r)
     {
         if (r == GetOutsideRoom())
@@ -51,8 +56,9 @@ public class World : IXmlSerializable
             Debug.LogError("World:DeleteRoom: Trying to delete the outside room - bad.");
             return;
         }
-        r.UnAssignAllTiles();
+
         roomList.Remove(r);
+        r.UnAssignAllTiles();
     }
 
     public void SetupWorld(int width, int height)
@@ -77,6 +83,8 @@ public class World : IXmlSerializable
             }
         }
 
+        //TODO debug
+        roomList[0].roomName = "Outside";
         //Debug.Log("World created with " + (Width * Height) + " tiles.");
 
         CreateFurniturePrototypes();
@@ -225,7 +233,7 @@ public class World : IXmlSerializable
         //Redefine rooms if needed
         if (furn.isRoomBorder)
         {
-            Room.DoRoomFloodFill(furn);
+            Room.ReCalculateRooms(furn);
         }
 
 		if(cbFurnitureCreated != null)

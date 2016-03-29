@@ -35,7 +35,7 @@ public class Character : IXmlSerializable
 
     float movementPercentage;
 
-    float speed = 5f; //Tiles per second.
+    float speed = 50f; //Tiles per second.
 
     public Character(Tile tile)
     {

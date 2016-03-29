@@ -23,7 +23,7 @@ public class JobSpriteController : MonoBehaviour
     void OnJobCreated(Job job)
     {
         //TODO sprite
-        Sprite theSprite = fsc.GetSpriteForFurniture(job.jobObjectType);
+        //Sprite theSprite = fsc.GetSpriteForFurniture(job.jobObjectType);
 
         GameObject job_go = new GameObject();
 
