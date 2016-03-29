@@ -35,7 +35,7 @@ public class World : IXmlSerializable
         SetupWorld(width, height);
 
         //Make starting character
-        Character c = CreateCharacter(GetTileAt(Width / 2, Height / 2));
+        CreateCharacter(GetTileAt(Width / 2, Height / 2));
     }
 
     //TODO make this better.
@@ -83,10 +83,6 @@ public class World : IXmlSerializable
             }
         }
 
-        //TODO debug
-        roomList[0].roomName = "Outside";
-        //Debug.Log("World created with " + (Width * Height) + " tiles.");
-
         CreateFurniturePrototypes();
     }
 
@@ -132,9 +128,9 @@ public class World : IXmlSerializable
         );
 
         //TODO tmp testing
-        furniturePrototypes["Door"].furnitureParameters["openness"] = 0;
-        furniturePrototypes["Door"].furnitureParameters["is_opening"] = 0;
-        furniturePrototypes["Door"].updateActions += FurnitureActions.Door_UpdateAction;
+        furniturePrototypes["Door"].SetParameter("openness", 0);
+        furniturePrototypes["Door"].SetParameter("is_opening", 0);
+        furniturePrototypes["Door"].RegisterUpdateAction(FurnitureActions.Door_UpdateAction);
         furniturePrototypes["Door"].IsEnterable += FurnitureActions.Door_IsEnterable;
     }
 

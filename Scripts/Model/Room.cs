@@ -7,8 +7,6 @@ public class Room
     public float temperature = 0f;
     public float oxygen = 0f;
 
-    public string roomName = "defualt";
-
     List<Tile> tiles;
 
     public Room()
@@ -52,9 +50,24 @@ public class Room
         tiles = new List<Tile>();
     }
 
+    public static void ReCalculateRooms(Tile sourceTile)
+    {
+        //Called when a furniture that isRoomBorder is removed or destroyed
+
+        if (sourceTile.furniture != null && sourceTile.furniture.isRoomBorder)
+        {
+            return; //This tile is still a RoomBorder and thus cant be part of a room
+        }
+
+        //DoFloodFill(sourceTile, null); //TODO this doesn't work with current DoFloodFill() method
+    }
+
     public static void ReCalculateRooms(Furniture sourceFurniture)
     {
-        //TODO if FloodFill algorithm is used, it destroys the existing room regardless. This is potentially bad
+        //TODO if FloodFill algorithm is used, it destroys the existing room regardless. This is probably bad.
+        //Issue is currrently avoided by copying old room paremeters into the new room.
+
+        //TODO this function will break when deleting walls is implemented.
 
         //sourceFurniture is the new piece of furniture potentially causing new rooms to be formed.
         //Check neighbours of the furniture's tile.
@@ -172,7 +185,17 @@ public class Room
             } //if
         } //while
 
+        CopyParameters(oldRoom, newRoom);
+
         tile.world.AddRoom(newRoom);
 
     } //DoFloodFill
+
+    //This copies all room parameters from one room into another.
+    protected static void CopyParameters(Room sourceRoom, Room targetRoom)
+    {
+        targetRoom.temperature = sourceRoom.temperature;
+        targetRoom.oxygen = sourceRoom.oxygen;
+    }
+
 }//Class room

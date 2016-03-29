@@ -118,10 +118,10 @@ public class Tile : IXmlSerializable
             (diagOk && (Mathf.Abs( this.X - tile.X) == 1 && Mathf.Abs(this.Y - tile.Y) == 1))  //Diagonals adjacency
             ;
 
-        */
+        */ //TODO Use the North(), South(), etc functions here instead of magic numbers.
 
         //Same X axis, differ by 1 on Y axis
-        if (this.X == tile.X && (this.Y == (tile.Y +1) || this.Y ==( tile.Y -1)))
+        if (this.X == tile.X && (this.Y == (tile.Y + 1) || this.Y == ( tile.Y - 1)))
         {
             return true;
         }

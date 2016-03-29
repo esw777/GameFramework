@@ -9,8 +9,11 @@ using System.Xml.Serialization;
 
 public class Furniture : IXmlSerializable
 {
-    public Dictionary<string, float> furnitureParameters;
-    public Action<Furniture, float> updateActions;
+    //Contains custom parameters for this piece of furniture. TODO LUA will be able to describe these.
+    protected Dictionary<string, float> furnitureParameters;
+
+    //These are called every tick. TODO - these will probably be the imported LUA code.
+    protected Action<Furniture, float> updateActions;
 
     public Func<Furniture, Enterability> IsEnterable;
 
@@ -22,9 +25,9 @@ public class Furniture : IXmlSerializable
         }
     }
 
-	// This represents the BASE tile of the object -- but in practice, large objects may actually occupy
-	// multile tiles.
-	public Tile tile {get; protected set;}
+    // This represents the BASE tile of the object -- but in practice, large objects may actually occupy
+    // multile tiles.
+    public Tile tile {get; protected set;}
 
 	// This "objectType" will be queried by the visual system to know what sprite to render for this object
 	public string objectType {get; protected set;}
@@ -58,7 +61,7 @@ public class Furniture : IXmlSerializable
         furnitureParameters = new Dictionary<string, float>();
 	}
 
-    //Copy constructor
+    //Copy constructor - Clone() should be called instead of this. Direct calls will break sub-classing
     protected Furniture(Furniture furn)
     {
         this.objectType = furn.objectType;
@@ -78,6 +81,7 @@ public class Furniture : IXmlSerializable
         this.IsEnterable = furn.IsEnterable;
     }
 
+    //Makes a copy of the current furniture object. Sub classes should override this.
     virtual public Furniture Clone()
     {
         return new Furniture(this);
@@ -164,7 +168,8 @@ public class Furniture : IXmlSerializable
     }
 
     //Returns true if object is able to be placed at x,y position.
-    public bool __IsValidPosition(Tile t)
+    //TODO replace by validation checks farmed out to LUA files.
+    private bool __IsValidPosition(Tile t)
     {
         if (t.furniture != null)
         {
@@ -180,18 +185,42 @@ public class Furniture : IXmlSerializable
 
         return true;
     }
-
-    //Returns true is there is a wall pair at N/S or E/W and target tile is valid for placement
-    public bool __IsValidPosition_Door(Tile t)
+   
+    public float GetParameter(string key, float default_value = 0)
     {
-        if (__IsValidPosition(t) == false)
+        if (furnitureParameters.ContainsKey(key) == false)
         {
-            return false;
+            return default_value;
         }
-        //TODO check for walls
-        //if ()
 
-        return true;
+        return furnitureParameters[key];
+    }
+
+    public void SetParameter(string key, float value)
+    {
+        furnitureParameters[key] = value;
+    }
+
+    public void ChangeParameter(string key, float value)
+    {
+        if (furnitureParameters.ContainsKey(key) == false)
+        {
+            furnitureParameters[key] = value;
+            return;
+        }
+
+        furnitureParameters[key] += value;
+    }
+
+    //Registers a function to be called every Tick. (Will be farmed out to LUA later) TODO
+    public void RegisterUpdateAction(Action<Furniture, float> a)
+    {
+        updateActions += a;
+    }
+    
+    public void UnRegisterUpdateAction(Action<Furniture, float> a)
+    {
+        updateActions -= a;
     }
 
     #region SaveLoadCode

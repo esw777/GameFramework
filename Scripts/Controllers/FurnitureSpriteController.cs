@@ -117,19 +117,19 @@ public class FurnitureSpriteController : MonoBehaviour
             //TODO this function is getting rather large
             if (furn.objectType == "Door")
             {
-                if (furn.furnitureParameters["openness"] < 0.1f)
+                if (furn.GetParameter("openness") < 0.1f)
                 {
                     //Door is closed
                     spriteName = "Door_";
                 }
 
-                else if (furn.furnitureParameters["openness"] < 0.5f)
+                else if (furn.GetParameter("openness") < 0.5f)
                 {
                     //Partially open 1
                     spriteName = "Door_openness_1";
                 }
 
-                else if (furn.furnitureParameters["openness"] < 0.9f)
+                else if (furn.GetParameter("openness") < 0.9f)
                 {
                     //Partially open 2
                     spriteName = "Door_openness_2";

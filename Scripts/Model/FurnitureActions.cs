@@ -7,23 +7,23 @@ public static class FurnitureActions
     {
         //Debug.Log("Door_UpdateAction called");
 
-        if (furn.furnitureParameters["is_opening"] >= 1)
+        if (furn.GetParameter("is_opening") >= 1)
         {
-            furn.furnitureParameters["openness"] += deltaTime * 4;
+            furn.ChangeParameter("openness", deltaTime * 4);
 
-            if (furn.furnitureParameters["openness"] >= 1) //Stay open for a second
+            if (furn.GetParameter("openness") >= 1) //Stay open for a second
             {
                 //Start closing the door.
-                furn.furnitureParameters["is_opening"] = 0;
+                furn.SetParameter("is_opening", 0);
             }
         }
 
         else
         {
-            furn.furnitureParameters["openness"] -= deltaTime * 4;
+            furn.ChangeParameter("openness", -1 * deltaTime * 4);
         }
 
-        furn.furnitureParameters["openness"] = Mathf.Clamp01(furn.furnitureParameters["openness"]);
+        furn.SetParameter("openness", Mathf.Clamp01(furn.GetParameter("openness")));
 
         //TODO this gets called every frame - bad
         if (furn.cbOnChanged != null)
@@ -35,9 +35,9 @@ public static class FurnitureActions
     public static Enterability Door_IsEnterable(Furniture furn)
     {
         //If this is called, then something wants to enter the same tile as the door. So open the door
-        furn.furnitureParameters["is_opening"] = 1;
+        furn.SetParameter("is_opening", 1);
 
-        if (furn.furnitureParameters["openness"] >= 1)
+        if (furn.GetParameter("openness") >= 1)
         {
             return Enterability.Yes;
         }
