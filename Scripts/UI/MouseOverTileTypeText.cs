@@ -36,6 +36,9 @@ public class MouseOverTileTypeText : MonoBehaviour
 	void Update ()
     {
         tileUnderMouse = mouseController.GetTileUnderMouse();
-        myText.text = "Tile Type: " + tileUnderMouse.Type.ToString();
+        if (tileUnderMouse != null)
+        {
+            myText.text = "Tile Type: " + tileUnderMouse.Type.ToString();
+        }
 	}
 }

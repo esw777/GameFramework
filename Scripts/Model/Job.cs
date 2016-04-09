@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 using System;
 
 public class Job
@@ -8,7 +8,7 @@ public class Job
     //Examples: Place furniture, moving objects, working at workbench, etc.
 
     //Where job is located.
-    public Tile tile { get; protected set; }
+    public Tile tile;
 
     //How long Job takes
     float jobTime = 1f;
@@ -27,13 +27,49 @@ public class Job
     //Call when job is cancled
     Action<Job> cbJobCancel;
 
-    public Job(Tile tile, string jobObjectType, Action<Job> cbJobComplete, float jobTime = 1f, bool characterStandOnTile = true)
+    Dictionary<string, Inventory> inventoryRequirements;
+
+    public Job(Tile tile, string jobObjectType, Action<Job> cbJobComplete, float jobTime, Inventory[] invReqs, bool characterStandOnTile = true)
     {
         this.tile = tile;
         this.jobObjectType = jobObjectType;
         this.cbJobComplete = cbJobComplete;
         this.jobTime = jobTime;
         this.characterStandOnTile = characterStandOnTile;
+
+        //Deep copy the job requirements
+        this.inventoryRequirements = new Dictionary<string, Inventory>();
+        if (invReqs != null)
+        {
+            foreach (Inventory inv in invReqs)
+            {
+                this.inventoryRequirements[inv.objectType] = inv.Clone();
+            }
+        }
+    }
+
+    protected Job(Job other)
+    {
+        this.tile = other.tile;
+        this.jobObjectType = other.jobObjectType;
+        this.cbJobComplete = other.cbJobComplete;
+        this.jobTime = other.jobTime;
+        this.characterStandOnTile = other.characterStandOnTile;
+
+        //Deep copy the job requirements
+        this.inventoryRequirements = new Dictionary<string, Inventory>();
+        if (other.inventoryRequirements != null)
+        {
+            foreach (Inventory inv in other.inventoryRequirements.Values)
+            {
+                this.inventoryRequirements[inv.objectType] = inv.Clone();
+            }
+        }
+    }
+
+    virtual public Job Clone()
+    {
+        return new Job(this);
     }
 
     public void DoWork(float workTime)

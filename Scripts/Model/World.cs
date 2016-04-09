@@ -9,14 +9,17 @@ public class World : IXmlSerializable
 {
 	// A two-dimensional array to hold our tile data.
 	Tile[,] tiles;
-    public List<Character> characterList;
-    public List<Furniture> furnitureList;
-    public List<Room> roomList;
+    public List<Character>  characterList;
+    public List<Furniture>  furnitureList;
+    public List<Room>       roomList;
+
+    public InventoryManager inventoryManager;
 
     //The pathfinding graph used to navigate world.
     public Path_TileGraph tileGraph;
 
 	Dictionary<string, Furniture> furniturePrototypes;
+    public Dictionary<string, Job> furnitureJobPrototypes;
 
 	// The tile width of the world.
 	public int Width { get; protected set; }
@@ -25,8 +28,9 @@ public class World : IXmlSerializable
 	public int Height { get; protected set; }
 
 	Action<Furniture> cbFurnitureCreated;
-    Action<Tile> cbTileChanged;
     Action<Character> cbCharacterCreated;
+    Action<Inventory> cbInventoryCreated;
+    Action<Tile> cbTileChanged;
 
     public JobQueue jobQueue;
 
@@ -37,6 +41,10 @@ public class World : IXmlSerializable
         //Make starting character
         CreateCharacter(GetTileAt(Width / 2, Height / 2));
     }
+
+    //For serializer / loading
+    public World() : this(100, 100) { }
+    //public World() { }
 
     //TODO make this better.
     public Room GetOutsideRoom()
@@ -67,9 +75,8 @@ public class World : IXmlSerializable
         Height = height;
 
         jobQueue = new JobQueue();
+
         tiles = new Tile[Width, Height];
-        characterList = new List<Character>();
-        furnitureList = new List<Furniture>();
         roomList = new List<Room>();
         roomList.Add(new Room()); //"Outside" is considered one giant room. An empty map will be one giant room.
 
@@ -84,6 +91,10 @@ public class World : IXmlSerializable
         }
 
         CreateFurniturePrototypes();
+
+        characterList = new List<Character>();
+        furnitureList = new List<Furniture>();
+        inventoryManager = new InventoryManager();
     }
 
     public void Tick(float deltaTime)
@@ -104,6 +115,7 @@ public class World : IXmlSerializable
     {
         //TODO read furniture data/types from an external file rather than hardcoding - for mods
 		furniturePrototypes = new Dictionary<string, Furniture>();
+        furnitureJobPrototypes = new Dictionary<string, Job>();
 
 		furniturePrototypes.Add("Wall", 
 			new Furniture(
@@ -115,6 +127,10 @@ public class World : IXmlSerializable
                                 true  // isRoomBorder - the "Room" code will consider this furniture type a border
                             )
 		);
+        furnitureJobPrototypes.Add("Wall",
+                new Job(null, "Wall", FurnitureActions.JobComplete_FurnitureBuilding, 1f, new Inventory[] { new Inventory("Steel Plate", 5, 0) }, false)
+            );
+
         
         furniturePrototypes.Add("Door",
             new Furniture(
@@ -122,7 +138,7 @@ public class World : IXmlSerializable
                         2,  // Movecost
                         1,  // Width
                         1,  // Height
-                        true, // Links to neighbours and "sort of" becomes part of a large object
+                        false, // Links to neighbours and "sort of" becomes part of a large object
                         true  // isRoomBorder - the "Room" code will consider this furniture type a border
                     )
         );
@@ -275,9 +291,6 @@ public class World : IXmlSerializable
     }
 
     #region SaveLoadCode
-    //For serializer - must be parameter-less
-    public World() : this(100, 100) { }
-
     public XmlSchema GetSchema()
     {
         return null;
@@ -362,15 +375,42 @@ public class World : IXmlSerializable
 
                 default:
                     break; //TODO
-
-
             }
         }
+
+        //DEBUG TODO remove
+        Inventory testInv = new Inventory();
+        testInv.stackSize = 10;
+        Tile t = GetTileAt(Width / 2, Height / 2);
+        inventoryManager.PlaceInventory(t, testInv);
+        if (cbInventoryCreated != null)
+        {
+            cbInventoryCreated(t.inventory);
+        }
+
+        testInv = new Inventory();
+        testInv.stackSize = 18;
+        t = GetTileAt(Width / 2 + 2, Height / 2);
+        inventoryManager.PlaceInventory(t, testInv);
+        if (cbInventoryCreated != null)
+        {
+            cbInventoryCreated(t.inventory);
+        }
+
+        testInv = new Inventory();
+        testInv.stackSize = 45;
+        t = GetTileAt(Width / 2 + 1, Height / 2 + 2);
+        inventoryManager.PlaceInventory(t, testInv);
+        if (cbInventoryCreated != null)
+        {
+            cbInventoryCreated(t.inventory);
+        }
+
     }
 
     void ReadXml_Tiles(XmlReader reader)
     {
-        Debug.Log("ReadXml_Tiles ");
+        //Debug.Log("ReadXml_Tiles ");
         //Load Tiles
 
         //Make sure there is at least one Tile to read in.
@@ -388,7 +428,7 @@ public class World : IXmlSerializable
 
     void ReadXml_Furnitures(XmlReader reader)
     {
-        Debug.Log("ReadXml_Furnitures ");
+        //Debug.Log("ReadXml_Furnitures ");
         //Load Tiles
         if (reader.ReadToDescendant("Furniture"))
         {
@@ -406,7 +446,7 @@ public class World : IXmlSerializable
 
     void ReadXml_Characters(XmlReader reader)
     {
-        Debug.Log("ReadXml_Characters ");
+        //Debug.Log("ReadXml_Characters ");
         //Load Tiles
         if (reader.ReadToDescendant("Character"))
         {
@@ -453,6 +493,16 @@ public class World : IXmlSerializable
     public void UnregisterCharacterCreated(Action<Character> callbackfunc)
     {
         cbCharacterCreated -= callbackfunc;
+    }
+
+    public void RegisterInventoryCreated(Action<Inventory> callbackfunc)
+    {
+        cbInventoryCreated += callbackfunc;
+    }
+
+    public void UnregisterInventoryCreated(Action<Inventory> callbackfunc)
+    {
+        cbInventoryCreated -= callbackfunc;
     }
 
     //Called when a tile changes

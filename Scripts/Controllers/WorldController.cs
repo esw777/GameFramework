@@ -56,8 +56,8 @@ public class WorldController : MonoBehaviour
     // returns the tile at world coordinate.
     public Tile GetTileAtWorldCoord(Vector3 coord)
     {
-        int x = Mathf.FloorToInt(coord.x);
-        int y = Mathf.FloorToInt(coord.y);
+        int x = Mathf.FloorToInt(coord.x + 0.5f);
+        int y = Mathf.FloorToInt(coord.y + 0.5f);
 
         return world.GetTileAt(x, y);
     }
@@ -90,7 +90,7 @@ public class WorldController : MonoBehaviour
     
     public void LoadWorld()
     {
-        Debug.Log("LoadWorld Clicked");
+        //Debug.Log("LoadWorld Clicked");
 
         loadWorld = true;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -98,7 +98,7 @@ public class WorldController : MonoBehaviour
 
     void CreateEmptyWorld()
     {
-        Debug.Log("CreateEmptyWorld()");
+        //Debug.Log("CreateEmptyWorld()");
         // Create a world with Empty tiles
         world = new World();
 
@@ -108,7 +108,7 @@ public class WorldController : MonoBehaviour
 
     void CreateWorldFromSaveFile()
     {
-        Debug.Log("CreateEmptyWorldFromSave()");
+        //Debug.Log("CreateEmptyWorldFromSave()");
 
         // Create a world from save file data
         XmlSerializer serializer = new XmlSerializer(typeof(World));

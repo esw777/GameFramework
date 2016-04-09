@@ -64,7 +64,6 @@ public class FurnitureSpriteController : MonoBehaviour
         furn_go.transform.position = new Vector3(furn.tile.X, furn.tile.Y, 0);
         furn_go.transform.SetParent(this.transform, true);
 
-        //TODO more hardcoding that needs to be refactored
         if (furn.objectType == "Door")
         {
             //Check to see if door needs to be rotated 90 degrees to NS from EW
@@ -75,7 +74,6 @@ public class FurnitureSpriteController : MonoBehaviour
                     northTile.furniture.objectType == "Wall" && southTile.furniture.objectType == "Wall")
             {
                 furn_go.transform.rotation = Quaternion.Euler(0, 0, 90);
-                furn_go.transform.Translate(1f, 0, 0, Space.World); //TODO hack for pivot point not being center
             }
         }
 
@@ -86,7 +84,6 @@ public class FurnitureSpriteController : MonoBehaviour
         // Register our callback so that our GameObject gets updated whenever
         // the object's into changes.
         furn.RegisterOnChangedCallback(OnFurnitureChanged);
-
     }
 
     void OnFurnitureChanged(Furniture furn)
@@ -116,12 +113,12 @@ public class FurnitureSpriteController : MonoBehaviour
         {
             //TODO this function is getting rather large
             if (furn.objectType == "Door")
-            {
+            {              
                 if (furn.GetParameter("openness") < 0.1f)
                 {
                     //Door is closed
                     spriteName = "Door_";
-                }
+                }              
 
                 else if (furn.GetParameter("openness") < 0.5f)
                 {

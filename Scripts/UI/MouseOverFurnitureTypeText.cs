@@ -37,14 +37,14 @@ public class MouseOverFurnitureTypeText : MonoBehaviour
     {
         tileUnderMouse = mouseController.GetTileUnderMouse();
 
-        if (tileUnderMouse.furniture != null)
+        if (tileUnderMouse == null || tileUnderMouse.furniture == null)
         {
-            myText.text = "Furniture Type: " + tileUnderMouse.furniture.objectType.ToString();
+            myText.text = "No Furniture";
         }
 
         else
         {
-            myText.text = "No Furniture";
+            myText.text = "Furniture Type: " + tileUnderMouse.furniture.objectType.ToString();     
         }
     }
 }

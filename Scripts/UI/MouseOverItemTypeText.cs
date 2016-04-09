@@ -2,7 +2,7 @@
 using System.Collections;
 using UnityEngine.UI;
 
-public class MouseOverRoomIndexText : MonoBehaviour
+public class MouseOverItemTypeText : MonoBehaviour
 {
     //This script runs every frame.
     //It identifies the tile currently under the mouse and updates 
@@ -37,10 +37,14 @@ public class MouseOverRoomIndexText : MonoBehaviour
     {
         tileUnderMouse = mouseController.GetTileUnderMouse();
 
-        if (tileUnderMouse != null)
+        if (tileUnderMouse == null || tileUnderMouse.inventory == null)
         {
-            //myText.text = "Room Index: " + tileUnderMouse.room.roomName; //TODO
-            myText.text = "Room Index: " + tileUnderMouse.world.roomList.IndexOf(tileUnderMouse.room).ToString();
+            myText.text = "No Items";
+        }
+
+        else
+        {
+            myText.text = "Item Type: " + tileUnderMouse.inventory.objectType.ToString() + ", StackSize: " + tileUnderMouse.inventory.stackSize.ToString();
         }
     }
 }

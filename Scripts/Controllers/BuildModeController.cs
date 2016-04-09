@@ -23,14 +23,19 @@ public class BuildModeController : MonoBehaviour
             //Check if valid position to build
             if (WorldController.Instance.world.IsFurniturePlacementValid(furnitureType, t) && t.pendingFurnitureJob == null)
             {
-                //Queues up a job to build the furniture. Lambda
-                Job j = new Job(t, furnitureType, (theJob) =>
+                Job j;
+
+                if (WorldController.Instance.world.furnitureJobPrototypes.ContainsKey(furnitureType))
                 {
-                    WorldController.Instance.world.PlaceFurniture(furnitureType, theJob.tile);
-                },
-                1,
-                false
-                );
+                    j = WorldController.Instance.world.furnitureJobPrototypes[furnitureType].Clone();
+                    j.tile = t;
+                }
+
+                else
+                {
+                    Debug.LogError("No furniture job prototype for :" + furnitureType);
+                    j = new Job(t, furnitureType, FurnitureActions.JobComplete_FurnitureBuilding, 1f, null, false);
+                }
 
                 t.pendingFurnitureJob = j;
 
@@ -38,7 +43,6 @@ public class BuildModeController : MonoBehaviour
                 j.RegisterJobCancelCallback((theJob) =>
                 {
                     theJob.tile.pendingFurnitureJob = null;
-
                 }
                 );
 

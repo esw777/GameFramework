@@ -30,10 +30,10 @@ public class Tile : IXmlSerializable
 	}
 
 	// LooseObject is something like a drill or a stack of metal sitting on the floor
-	Inventory inventory;
+	public Inventory inventory { get; protected set; }
 
-	// Furniture is something like a wall, door, or sofa.
-	public Furniture furniture {get; protected set;}
+    // Furniture is something like a wall, door, or sofa.
+    public Furniture furniture {get; protected set;}
 
     //True if pending furniture job on this tile
     public Job pendingFurnitureJob;
@@ -108,9 +108,49 @@ public class Tile : IXmlSerializable
 		furniture = objInstance;
 		return true;
 	}
-	
-    //Checks if two tiles are adjacent
-    public bool IsNeighbour(Tile tile, bool diagOk)
+
+    public bool PlaceInventory(Inventory inv)
+    { 
+		if(inv == null)
+        {
+			inventory = null;
+			return true;
+		}
+
+		if(inventory != null)
+        {
+			// There's already inventory here. Try to combine to one large stack
+
+			if(inventory.objectType != inv.objectType)
+            {
+				Debug.LogError("Tile: PlaceInventory: Trying to assign inventory to a tile that already has some of a different type.");
+				return false;
+			}
+
+			int numToMove = inv.stackSize;
+			if(inventory.stackSize + numToMove > inventory.maxStackSize)
+            {
+				numToMove = inventory.maxStackSize - inventory.stackSize;
+			}
+
+			inventory.stackSize += numToMove;
+			inv.stackSize -= numToMove;
+
+			return true;
+		}
+
+		// A this point, we know the current inventory is null. Inform the inventory manager that the old stack 
+        // is now empty and has to be removed from the the item lists.
+
+		inventory = inv.Clone();
+		inventory.tile = this;
+		inv.stackSize = 0;
+
+		return true;
+    }
+
+//Checks if two tiles are adjacent
+public bool IsNeighbour(Tile tile, bool diagOk)
     {
         /* fancy way probably not faster...
         return
