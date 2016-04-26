@@ -83,15 +83,11 @@ public class InventorySpriteController : MonoBehaviour
             
         }
 
-
-        // TODO add an onChanged callback
-
+        inv.RegisterInventoryChangedCallback(OnInventoryChanged);
     }
 
     void OnInventoryChanged(Inventory inv)
     {
-        //Not working/called yet
-
         if (inventoryGameObjectMap.ContainsKey(inv) == false)
         {
             Debug.LogError("OnInventoryChanged -- trying to change visuals for Inventory not in our map.");
@@ -100,7 +96,22 @@ public class InventorySpriteController : MonoBehaviour
 
         GameObject inv_go = inventoryGameObjectMap[inv];
 
-        //char_go.GetComponent<SpriteRenderer>().sprite = GetSpriteForCharacter(character);
-        inv_go.transform.position = new Vector3(inv.tile.X, inv.tile.Y, 0);
+        if (inv.stackSize > 0)
+        {
+            Text text = inv_go.GetComponentInChildren<Text>();
+
+            if (text != null)
+            {
+                text.text = inv.stackSize.ToString();
+            }
+        }
+
+        else
+        {
+            //Item amount has become zero, no need to display a sprite
+            Destroy(inv_go);
+            inventoryGameObjectMap.Remove(inv);
+            inv.UnregisterInventoryChangedCallback(OnInventoryChanged);
+        }
     }
 }

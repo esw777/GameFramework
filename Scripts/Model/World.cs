@@ -36,6 +36,8 @@ public class World : IXmlSerializable
 
 	public World(int width, int height)
     {
+        GenerateWorld();
+
         SetupWorld(width, height);
 
         //Make starting character
@@ -69,8 +71,27 @@ public class World : IXmlSerializable
         r.UnAssignAllTiles();
     }
 
+    public void GenerateWorld()
+    {
+        //Generates history of the world
+
+        //Create list of significant places
+        /*
+        for (int i = 0, i < numSigPlaces; i++)
+        {
+
+        //Create the starting population. 
+            Place place = new Place("name", typeOfPlace);
+            significantPlaceList.Add(place);
+        }
+        */
+        
+
+    }
+
     public void SetupWorld(int width, int height)
     {
+        //Generates the objects in the world
         Width = width;
         Height = height;
 
@@ -129,7 +150,7 @@ public class World : IXmlSerializable
 		);
         furnitureJobPrototypes.Add("Wall",
                 new Job(null, "Wall", FurnitureActions.JobComplete_FurnitureBuilding, 1f, new Inventory[] { new Inventory("Steel Plate", 5, 0) }, false)
-            );
+        );
 
         
         furniturePrototypes.Add("Door",
@@ -148,6 +169,26 @@ public class World : IXmlSerializable
         furniturePrototypes["Door"].SetParameter("is_opening", 0);
         furniturePrototypes["Door"].RegisterUpdateAction(FurnitureActions.Door_UpdateAction);
         furniturePrototypes["Door"].IsEnterable += FurnitureActions.Door_IsEnterable;
+
+        furniturePrototypes.Add("Stockpile",
+            new Furniture(
+                        "Stockpile",
+                        1,  // Movecost, 0 = impassable
+                        1,  // Width
+                        1,  // Height
+                        false, // Links to neighbours and "sort of" becomes part of a large object
+                        false  // isRoomBorder - the "Room" code will consider this furniture type a border
+                    )
+        );
+        furniturePrototypes["Stockpile"].RegisterUpdateAction(FurnitureActions.Stockpile_UpdateAction);
+        furnitureJobPrototypes.Add("Stockpile",
+        new Job(
+            null,
+            "Stockpile", 
+            FurnitureActions.JobComplete_FurnitureBuilding, 
+            -1, 
+            null)
+        );
     }
 
     public Character CreateCharacter( Tile t)
@@ -379,8 +420,7 @@ public class World : IXmlSerializable
         }
 
         //DEBUG TODO remove
-        Inventory testInv = new Inventory();
-        testInv.stackSize = 10;
+        Inventory testInv = new Inventory("Steel Plate", 50, 2);
         Tile t = GetTileAt(Width / 2, Height / 2);
         inventoryManager.PlaceInventory(t, testInv);
         if (cbInventoryCreated != null)
@@ -388,8 +428,7 @@ public class World : IXmlSerializable
             cbInventoryCreated(t.inventory);
         }
 
-        testInv = new Inventory();
-        testInv.stackSize = 18;
+        testInv = new Inventory("Steel Plate", 50, 4);
         t = GetTileAt(Width / 2 + 2, Height / 2);
         inventoryManager.PlaceInventory(t, testInv);
         if (cbInventoryCreated != null)
@@ -397,8 +436,7 @@ public class World : IXmlSerializable
             cbInventoryCreated(t.inventory);
         }
 
-        testInv = new Inventory();
-        testInv.stackSize = 45;
+        testInv = new Inventory("Steel Plate", 50, 6);
         t = GetTileAt(Width / 2 + 1, Height / 2 + 2);
         inventoryManager.PlaceInventory(t, testInv);
         if (cbInventoryCreated != null)

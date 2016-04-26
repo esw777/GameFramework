@@ -72,7 +72,14 @@ public class SoundController : MonoBehaviour
             return;
         }
 
-        AudioSource.PlayClipAtPoint(soundClipDictionary[(furn.objectType + "_OnCreate")], Camera.main.transform.position, volume);
-        soundCooldown = 0.5f;
+        if (soundClipDictionary.ContainsKey(furn.objectType + "_OnCreate"))
+        {
+            AudioSource.PlayClipAtPoint(soundClipDictionary[(furn.objectType + "_OnCreate")], Camera.main.transform.position, volume);
+            soundCooldown = 0.5f;
+        }
+        else
+        {
+            Debug.LogError("There is no sound for furniture_OnCreate for type: " + furn.objectType.ToString() + ".");
+        }
     }
 }

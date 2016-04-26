@@ -23,55 +23,212 @@ public class Character : IXmlSerializable
         }
     }
 
+    //Background stuff TODO testing - is not used yet
+    public CharacterRelations  myCharacterRelations { get; protected set; }
+    public CharacterDetails    myCharacterDetails   { get; protected set; }
+    public CharacterSkills     myCharacterSkills    { get; protected set; }
+
     Job myJob;
     Action<Character> cbCharacterChanged;
 
     public Tile currTile { get; protected set; }
 
-    Tile destTile;
+    Tile _destTile;
+    Tile destTile
+    {
+        get { return _destTile; }
+        set
+        {
+            if (_destTile != value)
+            {
+                _destTile = value;
+                pathAStar = null;
+            }
+        }
+    }
+
+
     Tile nextTile;
     Path_AStar pathAStar;
 
+    //Item being carried / hauled
+    public Inventory inventory;
 
     float movementPercentage;
 
-    float speed = 50f; //Tiles per second.
+    float speed = 5f; //Tiles per second.
+
+    public Character() { } //Should only be used for serialization
 
     public Character(Tile tile)
     {
         currTile = tile;
         destTile = tile;
         nextTile = tile;
+
+        //createCharacterSpecifics(); //TODO
     }
 
-    //Manages doing work every tick. Returns true if character did work.
+    void createCharacterSpecifics()
+    {
+        myCharacterRelations = new CharacterRelations(this, null, null);
+        myCharacterSkills = new CharacterSkills();
+        myCharacterDetails = new CharacterDetails("Default-Bob", false, 42, "Atlantis", true);
+    }
+
+    void GetNewJob()
+    {
+        //TODO prioritize closer jobs.
+        myJob = currTile.world.jobQueue.DeQueue();
+
+        if (myJob == null)
+        {
+            return;
+        }
+
+        myJob.RegisterJobCancelCallback(OnJobEnded);
+        myJob.RegisterJobCompleteCallback(OnJobEnded);
+
+        //Check if job is reachable - valid path to jobsite.
+        destTile = myJob.tile;
+        pathAStar = new Path_AStar(currTile.world, currTile, destTile, false);
+        if (pathAStar.Length() == 0)
+        {
+            Debug.LogError("Tick_DoJob: Path_AStar return no valid path");
+            AbandonJob();
+            pathAStar = null;
+            destTile = currTile;
+        }
+    }
+
+    //Manages doing work every tick.
+    //TODO this is getting complicated, consider state machine for currentAction/currentTask
+        //Whether or not to stand on tile (pick something up) or next to it (build a wall) becomes convoluted in current setup.
+        //Also will greatly help implementation of picking up items from multiple tiles before doing a delivery.
+
     void Tick_DoJob(float deltaTime)
     {
         if (myJob == null)
         {
-            //Try to get new job
-            myJob = currTile.world.jobQueue.DeQueue();
-
-            if (myJob != null)
+            GetNewJob();
+            if (myJob == null)
             {
-                //Got new job
-
-                //TODO prioritize closer jobs.
-
-                destTile = myJob.tile;
-                myJob.RegisterJobCancelCallback(OnJobEnded);
-                myJob.RegisterJobCompleteCallback(OnJobEnded);
+                //No job was retrieved from queue, do nothing
+                return;
             }
         }
-        
-        // Do not try to do work right after getting a new job. Needs to run through pathfinding to see if job is valid.
-        else if (myJob != null && (currTile == destTile || currTile.IsNeighbour(destTile, true)))
+
+        //We have a reachable job
+
+        //Check if job has all needed materials
+        if (myJob.HasAllRequiredMaterials() == false)
+        {
+            //Is the character currently carrying a required item?
+            if (inventory != null)
+            {
+                if (myJob.IsItemRequired(inventory) > 0)
+                {
+                    //Yes - Deliver items to jobsite - Walk to job tile
+                    if (currTile == myJob.tile || currTile.IsNeighbour(myJob.tile, true))
+                    {
+                        //Already at job site, deliver items.
+                        currTile.world.inventoryManager.PlaceInventory(myJob, inventory);
+
+                        myJob.DoWork(0); //Triggers jobWorked callbacks. Some jobs care about stack size changes.
+
+                        //Check if we have extra
+                        if (inventory.stackSize <= 0)
+                        {
+                            inventory = null;
+                        }
+
+                        else
+                        {
+                            Debug.LogError("Character: Tick_DoJob: Character is still carrying stuff after trying to deliver items to jobsite");
+                            if (currTile.world.inventoryManager.PlaceInventory(currTile, inventory) == false)
+                            {
+                                Debug.LogError("Character: Tick_DoJob: Character tried to drop item into an invalid tile.");
+                                //FIXME: Again, cast the item into the abyss, memory leak. Enables character logic to not break.
+                                inventory = null;
+                            }
+                        }
+                    }
+
+                    else
+                    {
+                        //Need to walk to jobsite.
+                        destTile = myJob.tile;
+                        return;
+                    }
+                }
+
+                else
+                {
+                    //Carrying a non-required item for this job. Just drop it for now.
+                    //TODO verify empty tile, walk to empty tile to drop it.
+                    if (currTile.world.inventoryManager.PlaceInventory(currTile, inventory) == false)
+                    {
+                        Debug.LogError("Character: Tick_DoJob: Character tried to drop item into an invalid tile.");
+                        //FIXME: Again, cast the item into the abyss, memory leak. Enables character logic to not break.
+                        inventory = null;
+                    }
+                }
+            }
+
+            //No - Goto a tile with required item and pick it up.
+            else
+            {
+                //TODO: This is very much 1/2 implemented and not optimized.
+                //Already at the tile where we want to pick something up from.
+                //if (currTile == destTile || currTile.IsNeighbour(destTile, true))
+                //{
+                    if (currTile.inventory != null && myJob.IsItemRequired(currTile.inventory) > 0)
+                    {
+                        //Already standing on tile with required items.
+                        currTile.world.inventoryManager.PlaceInventory(
+                            this, 
+                            currTile.inventory, 
+                            myJob.IsItemRequired(currTile.inventory)
+                            );
+                    }
+                //}
+
+                else //Need to move to a tile with the item.
+                {
+                    Inventory requiredInventory = myJob.GetFirstRequiredInventory();
+
+                    Inventory supplierInventory = currTile.world.inventoryManager.GetClosestInventoryOfType(
+                        requiredInventory.objectType,
+                        currTile,
+                        requiredInventory.maxStackSize - requiredInventory.stackSize
+                        );
+
+                    if (supplierInventory == null)
+                    {
+                        Debug.Log("No tile contains object of type '" + requiredInventory.objectType + "' to satisfy job reqs");
+                        AbandonJob();
+                        return;
+                    }
+
+                    destTile = supplierInventory.tile;
+                    return;
+                }
+            }
+            return; //Do not do work on the job if materials are still needed.
+        }
+
+        // Job has all required materials. Goto job tile to do work.
+        destTile = myJob.tile;
+
+        //We are in range to work on the job. Do work.
+        if (currTile == destTile || currTile.IsNeighbour(destTile, true))
         {
             //We have a job and are within the working distance.
             myJob.DoWork(deltaTime);
             return;
         }
 
+        Debug.LogError("something funky");
         return; 
     }
 
@@ -88,7 +245,7 @@ public class Character : IXmlSerializable
             if (pathAStar == null || pathAStar.Length() == 0) 
             {
                 //Generate new path
-                pathAStar = new Path_AStar(currTile.world, currTile, destTile, myJob.characterStandOnTile);
+                pathAStar = new Path_AStar(currTile.world, currTile, destTile, true); //FIXME item retrieval is screwing up due to this //myJob.characterStandOnTile);
                 if (pathAStar.Length() == 0)
                 {
                     Debug.LogError("Character: Tick_DoMovement: Path_AStar returned no path to dest");
@@ -100,7 +257,7 @@ public class Character : IXmlSerializable
             //Path exists, get next tile to move to
             nextTile = pathAStar.DequeueTile();
 
-            //Verify path is still correct Need this because we divide by nextTile.movementCost later.
+            /* Not needed currently. Causes a more common issue where character builds a wall on the tile he is standing on and gets stuck.
             if (nextTile.movementCost == 0)
             {
                 //TODO handle this better. Should never get this far into the code. Need to regenerate path sooner.
@@ -110,6 +267,7 @@ public class Character : IXmlSerializable
                 pathAStar = null;
                 return;
             }
+            */
         }
 
         if (nextTile.IsEnterable() == Enterability.Soon)
@@ -173,8 +331,20 @@ public class Character : IXmlSerializable
         destTile = tile;
     }
 
+    #region relations
+
+    //TODO make this not public. Ideally this will be called when 
+    public void haveBaby()
+    {
+
+
+
+    }
+
+
+    #endregion
+
     #region SaveLoadCode
-    public Character() { } //Should only be used for serialization
 
     public XmlSchema GetSchema()
     {

@@ -16,6 +16,13 @@ public class JobQueue
     // newJob = false when the job has been abandoned and needs to be put back into the queue.
     public void Enqueue(Job j, bool newJob)
     {
+        if (j.jobTime < 0)
+        {
+            //Job is meant to be insta-completed by User. (defining stockpile zones, rally flag, etc.)
+            j.DoWork(0);
+            return;
+        }
+
         jobQueue.Enqueue(j);
 
         if (cbJobCreated != null && newJob)
@@ -33,6 +40,21 @@ public class JobQueue
         }
 
         return jobQueue.Dequeue();
+    }
+
+    //TODO check if Queue already has a solution for this.
+    public void Remove(Job j)
+    {
+        List<Job> jobs = new List<Job>(jobQueue);
+
+        if (jobs.Contains(j) == false)
+        {
+            Debug.LogError("Trying to remove a job that does not exist");
+            return;
+        }
+
+        jobs.Remove(j);
+        jobQueue = new Queue<Job>(jobs);
     }
 
 

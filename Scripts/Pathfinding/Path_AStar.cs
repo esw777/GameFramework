@@ -21,9 +21,6 @@ public class Path_AStar
         if (nodes.ContainsKey(tileStart) == false)
         {
             Debug.LogError("Path_AStar: Starting tile is not in list of nodes.");
-
-            //TODO fixme - If character manages to build a wall where they are standing, they get stuck.
-
             return;
         }
 

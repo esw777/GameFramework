@@ -52,4 +52,71 @@ public static class FurnitureActions
 
         theJob.tile.pendingFurnitureJob = null;
     }
+
+    public static void Stockpile_UpdateAction(Furniture furn, float deltaTime)
+    {
+        //Need to ensure that there is a job on the queue that is asking for:
+            //1. Empty tile - any valid object time to be hauled here
+            //2. Non-Empty, but below maxStackSize - more of the current item type to be hauled here.
+
+        if (furn.JobCount() > 0)
+        {
+            return; //already have a job, do not create another one
+        }
+
+        if (furn.tile.inventory == null)
+        {
+            //empty, ask for anything to be brought here
+            Job j = new Job(
+                furn.tile,
+                null,
+                null,
+                0,
+                new Inventory[1] { new Inventory("Steel Plate", 50, 0) }, //Once inventory filters are added, those filters need to be applied to this list.
+                true
+                );
+
+            j.RegisterJobWorkedCallback(Stockpile_JobWorked);
+            
+            furn.AddJob(j);
+        }
+
+        else if (furn.tile.inventory.stackSize < furn.tile.inventory.maxStackSize)
+        {
+            //Room for more items
+            Inventory reqInv = furn.tile.inventory.Clone();
+            reqInv.maxStackSize -= reqInv.stackSize;
+            reqInv.stackSize = 0;
+
+            Job j = new Job(
+                furn.tile,
+                null,
+                null,
+                0,
+                new Inventory[1] { new Inventory("Steel Plate", 50, 0) }, //Once inventory filters are added, those filters need to be applied to this list.
+                true
+            );
+
+            j.RegisterJobWorkedCallback(Stockpile_JobWorked);
+
+            furn.AddJob(j);
+        }
+
+        else //Tile is full
+        {
+            return;
+        }
+    }
+
+    static void Stockpile_JobWorked(Job j)
+    {
+        j.tile.furniture.RemoveJob(j);
+
+        //TODO Change this when we have more than one loose item type (will match what the update action has to do for creating a job.
+        foreach (Inventory inv in j.inventoryRequirements.Values)
+        {
+            j.tile.world.inventoryManager.PlaceInventory(j.tile, inv);
+        }
+    }
+
 }

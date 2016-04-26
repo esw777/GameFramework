@@ -15,6 +15,8 @@ public class Furniture : IXmlSerializable
     //These are called every tick. TODO - these will probably be the imported LUA code.
     protected Action<Furniture, float> updateActions;
 
+    List<Job> jobs;
+
     public Func<Furniture, Enterability> IsEnterable;
 
     public void tick(float deltaTime)
@@ -59,7 +61,9 @@ public class Furniture : IXmlSerializable
 	public Furniture()
     {
         furnitureParameters = new Dictionary<string, float>();
-	}
+        jobs = new List<Job>();
+
+    }
 
     //Copy constructor - Clone() should be called instead of this. Direct calls will break sub-classing
     protected Furniture(Furniture furn)
@@ -72,6 +76,7 @@ public class Furniture : IXmlSerializable
         this.linksToNeighbour = furn.linksToNeighbour;
 
         this.furnitureParameters = new Dictionary<string, float>(furn.furnitureParameters);
+        jobs = new List<Job>();
 
         if (furn.updateActions != null)
         {
@@ -221,6 +226,34 @@ public class Furniture : IXmlSerializable
     public void UnRegisterUpdateAction(Action<Furniture, float> a)
     {
         updateActions -= a;
+    }
+
+    public int JobCount()
+    {
+        return jobs.Count;
+    }
+
+    public void AddJob(Job j)
+    {
+        jobs.Add(j);
+        tile.world.jobQueue.Enqueue(j, true);
+    }
+
+    public void RemoveJob(Job j)
+    {
+        jobs.Remove(j);
+        j.CancelJob();
+        tile.world.jobQueue.Remove(j);
+    }
+
+    public void ClearJobs()
+    {
+        foreach (Job j in jobs)
+        {
+            RemoveJob(j);
+        }
+
+        jobs = new List<Job>();
     }
 
     #region SaveLoadCode

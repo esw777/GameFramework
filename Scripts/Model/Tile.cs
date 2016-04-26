@@ -29,8 +29,8 @@ public class Tile : IXmlSerializable
 		}
 	}
 
-	// LooseObject is something like a drill or a stack of metal sitting on the floor
-	public Inventory inventory { get; protected set; }
+    // LooseObject is something like a drill or a stack of metal sitting on the floor
+    public Inventory inventory; //{ get; protected set; }
 
     // Furniture is something like a wall, door, or sofa.
     public Furniture furniture {get; protected set;}
@@ -72,18 +72,6 @@ public class Tile : IXmlSerializable
 		this.world = world;
 		this.X = x;
 		this.Y = y;
-	}
-
-	// Registers a function to be called back when our tile type changes.
-	public void RegisterTileTypeChangedCallback(Action<Tile> callback)
-    {
-        cbTileChanged += callback;
-	}
-	
-	// Unregisters a callback.
-	public void UnregisterTileTypeChangedCallback(Action<Tile> callback)
-    {
-        cbTileChanged -= callback;
 	}
 
 	public bool PlaceFurniture(Furniture objInstance)
@@ -149,7 +137,7 @@ public class Tile : IXmlSerializable
 		return true;
     }
 
-//Checks if two tiles are adjacent
+//Checks if two tiles are adjacent //TODO this gets called A LOT, good place to optimize.
 public bool IsNeighbour(Tile tile, bool diagOk)
     {
         /* fancy way probably not faster...
@@ -282,6 +270,22 @@ public bool IsNeighbour(Tile tile, bool diagOk)
     {
         return world.GetTileAt(X - 1, Y);
     }
+
+    #region callbacks
+
+    // Registers a function to be called back when our tile type changes.
+    public void RegisterTileTypeChangedCallback(Action<Tile> callback)
+    {
+        cbTileChanged += callback;
+    }
+
+    // Unregisters a callback.
+    public void UnregisterTileTypeChangedCallback(Action<Tile> callback)
+    {
+        cbTileChanged -= callback;
+    }
+
+    #endregion
 
     #region SaveLoadCode
     public XmlSchema GetSchema()

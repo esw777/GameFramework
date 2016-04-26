@@ -11,7 +11,7 @@ public class Job
     public Tile tile;
 
     //How long Job takes
-    float jobTime = 1f;
+    public float jobTime { get; protected set; }
 
     //Whether the job requires the character to be in same tile or only adjacent. Used in pathfinding.
     //True = same tile. False = adjacent
@@ -27,7 +27,10 @@ public class Job
     //Call when job is cancled
     Action<Job> cbJobCancel;
 
-    Dictionary<string, Inventory> inventoryRequirements;
+    //Call when job is worked on
+    Action<Job> cbJobWorked;
+
+    public Dictionary<string, Inventory> inventoryRequirements;
 
     public Job(Tile tile, string jobObjectType, Action<Job> cbJobComplete, float jobTime, Inventory[] invReqs, bool characterStandOnTile = true)
     {
@@ -76,6 +79,11 @@ public class Job
     {
         jobTime -= workTime;
 
+        if (cbJobWorked != null)
+        {
+            cbJobWorked(this);
+        }
+
         if (jobTime <= 0)
         {
             if (cbJobComplete != null)
@@ -91,6 +99,51 @@ public class Job
         {
             cbJobCancel(this);
         }
+
+        tile.world.jobQueue.Remove(this); //TODO tile may be null?
+    }
+
+    public bool HasAllRequiredMaterials()
+    {
+        foreach(Inventory inv in inventoryRequirements.Values)
+        {
+            if (inv.maxStackSize > inv.stackSize)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public int IsItemRequired(Inventory inv)
+    {
+        //Item not needed
+        if (inventoryRequirements.ContainsKey(inv.objectType) == false)
+        {
+            return 0;
+        }
+
+        //Already have needed amount of that item
+        if (inventoryRequirements[inv.objectType].stackSize >= inventoryRequirements[inv.objectType].maxStackSize)
+        {
+            return 0;
+        }
+
+        //Need more of that item.
+        return inventoryRequirements[inv.objectType].maxStackSize - inventoryRequirements[inv.objectType].stackSize;
+    }
+
+    public Inventory GetFirstRequiredInventory()
+    {
+        foreach (Inventory inv in inventoryRequirements.Values)
+        {
+            if (inv.maxStackSize > inv.stackSize)
+            {
+                return inv;
+            }
+        }
+
+        return null;
     }
 
     #region Callbacks
@@ -99,18 +152,29 @@ public class Job
         cbJobComplete += cb;
     }
 
-    public void RegisterJobCancelCallback(Action<Job> cb)
-    {
-        cbJobCancel += cb;
-    }
     public void UnregisterJobCompleteCallback(Action<Job> cb)
     {
         cbJobComplete -= cb;
     }
 
+    public void RegisterJobCancelCallback(Action<Job> cb)
+    {
+        cbJobCancel += cb;
+    }
+
     public void UnregisterJobCancelCallback(Action<Job> cb)
     {
         cbJobCancel -= cb;
+    }
+
+    public void RegisterJobWorkedCallback(Action<Job> cb)
+    {
+        cbJobWorked -= cb;
+    }
+
+    public void UnregisterJobWorkedCallback(Action<Job> cb)
+    {
+        cbJobWorked -= cb;
     }
     #endregion
 

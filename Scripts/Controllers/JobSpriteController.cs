@@ -22,6 +22,12 @@ public class JobSpriteController : MonoBehaviour
 	
     void OnJobCreated(Job job)
     {
+        if (job.jobObjectType == null)
+        {
+            //Job does not have an assosiated sprite (build something in a workshop, hauling.)
+            return;
+        }
+        
         //TODO sprite
         //Sprite theSprite = fsc.GetSpriteForFurniture(job.jobObjectType);
 
@@ -40,6 +46,7 @@ public class JobSpriteController : MonoBehaviour
         sr.color = new Color(0.5f, 1f, 0.5f, 0.3f);
         sr.sortingLayerName = "Jobs";
 
+        //TODO remove hardcoding like this
         if (job.jobObjectType == "Door")
         {
             //Check to see if door needs to be rotated 90 degrees to NS from EW

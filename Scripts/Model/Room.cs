@@ -117,6 +117,7 @@ public class Room
             //TODO debug
             if (oldRoom.tiles.Count > 0)
             {
+                //This triggered when tile/foor got deleted while building a wall (causing room recalc)
                 Debug.LogError("Room:ReCalculateRooms: Room about to be deleted still has tiles.");
             }
 
