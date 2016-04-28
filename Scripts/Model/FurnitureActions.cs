@@ -53,59 +53,73 @@ public static class FurnitureActions
         theJob.tile.pendingFurnitureJob = null;
     }
 
+    public static Inventory[] Stockpile_GetItemsFromFilter()
+    {
+        //TODO reads data from UI to get item filter defined by user for a stockpile;
+        return new Inventory[1] { new Inventory("Steel Plate", 50, 0) };
+    }
+
     public static void Stockpile_UpdateAction(Furniture furn, float deltaTime)
     {
         //Need to ensure that there is a job on the queue that is asking for:
-            //1. Empty tile - any valid object time to be hauled here
-            //2. Non-Empty, but below maxStackSize - more of the current item type to be hauled here.
+        //1. Empty tile - any valid object time to be hauled here
+        //2. Non-Empty, but below maxStackSize - more of the current item type to be hauled here.
+
+        //TODO: this function should not be called every frame. Can be run based on trigger - Initial creation, item deliveries / pickups, UI filer is changed.
+
+        if (furn.tile.inventory != null && furn.tile.inventory.stackSize >= furn.tile.inventory.maxStackSize)
+        {
+            //Full, do not need to do anything.
+            furn.ClearJobs();
+            return;
+        }
 
         if (furn.JobCount() > 0)
         {
             return; //already have a job, do not create another one
         }
 
-        if (furn.tile.inventory == null)
+        //TODO debug
+        if (furn.tile.inventory != null && furn.tile.inventory.maxStackSize == 0)
         {
-            //empty, ask for anything to be brought here
-            Job j = new Job(
-                furn.tile,
-                null,
-                null,
-                0,
-                new Inventory[1] { new Inventory("Steel Plate", 50, 0) }, //Once inventory filters are added, those filters need to be applied to this list.
-                true
-                );
-
-            j.RegisterJobWorkedCallback(Stockpile_JobWorked);
-            
-            furn.AddJob(j);
-        }
-
-        else if (furn.tile.inventory.stackSize < furn.tile.inventory.maxStackSize)
-        {
-            //Room for more items
-            Inventory reqInv = furn.tile.inventory.Clone();
-            reqInv.maxStackSize -= reqInv.stackSize;
-            reqInv.stackSize = 0;
-
-            Job j = new Job(
-                furn.tile,
-                null,
-                null,
-                0,
-                new Inventory[1] { new Inventory("Steel Plate", 50, 0) }, //Once inventory filters are added, those filters need to be applied to this list.
-                true
-            );
-
-            j.RegisterJobWorkedCallback(Stockpile_JobWorked);
-
-            furn.AddJob(j);
-        }
-
-        else //Tile is full
-        {
+            Debug.LogError("Stockpile has a stack with 0 size - something screwed up");
             return;
         }
+
+        //TODO - In future, stockpiles next to each other should combine into 1 large "furniture" object rather than being individual objects.
+
+        //Request new items
+        Inventory[] reqInv;
+
+        //No existing items, get any item type delivered
+        if (furn.tile.inventory == null)
+        {
+            reqInv = Stockpile_GetItemsFromFilter();
+        }
+
+        //Only path left is stockpile has a partial stacksize of an item.
+        else //if (furn.tile.inventory.stackSize < furn.tile.inventory.maxStackSize)
+        {
+            //Room for more items of same type that is already here
+            Inventory tmpInv = furn.tile.inventory.Clone();
+            tmpInv.maxStackSize -= tmpInv.stackSize;
+            tmpInv.stackSize = 0;
+
+            reqInv = new Inventory[] { tmpInv };
+        }
+
+        Job j = new Job(
+            furn.tile,
+            null,
+            null,
+            0,
+            reqInv,
+            true
+        );
+
+        j.canTakeFromStockpile = false;
+        j.RegisterJobWorkedCallback(Stockpile_JobWorked);
+        furn.AddJob(j);
     }
 
     static void Stockpile_JobWorked(Job j)

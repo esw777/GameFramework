@@ -8,6 +8,9 @@ public class Path_AStar
 
     public Path_AStar(World world, Tile tileStart, Tile tileEnd, bool endOnTile)
     {
+        //tmp TODO
+        endOnTile = true;
+
         //Check if tile graph exists, create one if not.
         if(world.tileGraph == null)
         {

@@ -37,7 +37,7 @@ public class UpdateStatsTypeTextDebug : MonoBehaviour
     void Update()
     {
         if (myChar.inventory != null)
-            myText.text = myChar.inventory.objectType + " Amount: " + myChar.inventory.stackSize.ToString();
+            myText.text = "CharInv: " + myChar.inventory.objectType + ": " + myChar.inventory.stackSize.ToString();
         else
             myText.text = "Null";
     }

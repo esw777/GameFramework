@@ -176,11 +176,12 @@ public class World : IXmlSerializable
                         1,  // Movecost, 0 = impassable
                         1,  // Width
                         1,  // Height
-                        false, // Links to neighbours and "sort of" becomes part of a large object
+                        true, // Links to neighbours and "sort of" becomes part of a large object
                         false  // isRoomBorder - the "Room" code will consider this furniture type a border
                     )
         );
         furniturePrototypes["Stockpile"].RegisterUpdateAction(FurnitureActions.Stockpile_UpdateAction);
+        furniturePrototypes["Stockpile"].tint = new Color32( 186, 31, 31, 255); //Dark red ish
         furnitureJobPrototypes.Add("Stockpile",
         new Job(
             null,
@@ -331,6 +332,14 @@ public class World : IXmlSerializable
         tileGraph = null;
     }
 
+    public void OnInventoryCreated(Inventory inv)
+    {
+        if (cbInventoryCreated != null)
+        {
+            cbInventoryCreated(inv);
+        }
+    }
+
     #region SaveLoadCode
     public XmlSchema GetSchema()
     {
@@ -420,7 +429,7 @@ public class World : IXmlSerializable
         }
 
         //DEBUG TODO remove
-        Inventory testInv = new Inventory("Steel Plate", 50, 2);
+        Inventory testInv = new Inventory("Steel Plate", 50, 50);
         Tile t = GetTileAt(Width / 2, Height / 2);
         inventoryManager.PlaceInventory(t, testInv);
         if (cbInventoryCreated != null)
@@ -428,7 +437,7 @@ public class World : IXmlSerializable
             cbInventoryCreated(t.inventory);
         }
 
-        testInv = new Inventory("Steel Plate", 50, 4);
+        testInv = new Inventory("Steel Plate", 50, 49);
         t = GetTileAt(Width / 2 + 2, Height / 2);
         inventoryManager.PlaceInventory(t, testInv);
         if (cbInventoryCreated != null)

@@ -47,6 +47,8 @@ public class Furniture : IXmlSerializable
     int width;
 	int height;
 
+    public Color tint = Color.white; //Graphics in the model TODO
+
 	public bool linksToNeighbour {get; protected set;}
 
     //TODO make get/set functions for furnitureParameters and call onchanged in the set rather than make this public.
@@ -73,6 +75,7 @@ public class Furniture : IXmlSerializable
         this.isRoomBorder = furn.isRoomBorder;
         this.width = furn.width;
         this.height = furn.height;
+        this.tint = furn.tint;
         this.linksToNeighbour = furn.linksToNeighbour;
 
         this.furnitureParameters = new Dictionary<string, float>(furn.furnitureParameters);
@@ -252,8 +255,11 @@ public class Furniture : IXmlSerializable
         {
             RemoveJob(j);
         }
+    }
 
-        jobs = new List<Job>();
+    public bool IsStockpile()
+    {
+        return objectType == "Stockpile";
     }
 
     #region SaveLoadCode

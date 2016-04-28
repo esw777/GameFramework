@@ -91,7 +91,7 @@ public class Character : IXmlSerializable
 
         //Check if job is reachable - valid path to jobsite.
         destTile = myJob.tile;
-        pathAStar = new Path_AStar(currTile.world, currTile, destTile, false);
+        pathAStar = new Path_AStar(currTile.world, currTile, destTile, myJob.characterStandOnTile);
         if (pathAStar.Length() == 0)
         {
             Debug.LogError("Tick_DoJob: Path_AStar return no valid path");
@@ -129,7 +129,7 @@ public class Character : IXmlSerializable
                 if (myJob.IsItemRequired(inventory) > 0)
                 {
                     //Yes - Deliver items to jobsite - Walk to job tile
-                    if (currTile == myJob.tile || currTile.IsNeighbour(myJob.tile, true))
+                    if (currTile == myJob.tile) //TODO stand next to broke || currTile.IsNeighbour(myJob.tile, true))
                     {
                         //Already at job site, deliver items.
                         currTile.world.inventoryManager.PlaceInventory(myJob, inventory);
@@ -182,7 +182,9 @@ public class Character : IXmlSerializable
                 //Already at the tile where we want to pick something up from.
                 //if (currTile == destTile || currTile.IsNeighbour(destTile, true))
                 //{
-                    if (currTile.inventory != null && myJob.IsItemRequired(currTile.inventory) > 0)
+                    if ((currTile.inventory != null) && 
+                        (myJob.canTakeFromStockpile || currTile.furniture == null || currTile.furniture.IsStockpile() == false) &&
+                        (myJob.IsItemRequired(currTile.inventory) > 0))
                     {
                         //Already standing on tile with required items.
                         currTile.world.inventoryManager.PlaceInventory(
@@ -200,7 +202,8 @@ public class Character : IXmlSerializable
                     Inventory supplierInventory = currTile.world.inventoryManager.GetClosestInventoryOfType(
                         requiredInventory.objectType,
                         currTile,
-                        requiredInventory.maxStackSize - requiredInventory.stackSize
+                        requiredInventory.maxStackSize - requiredInventory.stackSize,
+                        myJob.canTakeFromStockpile
                         );
 
                     if (supplierInventory == null)
@@ -221,7 +224,7 @@ public class Character : IXmlSerializable
         destTile = myJob.tile;
 
         //We are in range to work on the job. Do work.
-        if (currTile == destTile || currTile.IsNeighbour(destTile, true))
+        if (currTile == destTile) //TODO fix doing stuff next to tiles || currTile.IsNeighbour(destTile, true))
         {
             //We have a job and are within the working distance.
             myJob.DoWork(deltaTime);
@@ -245,7 +248,7 @@ public class Character : IXmlSerializable
             if (pathAStar == null || pathAStar.Length() == 0) 
             {
                 //Generate new path
-                pathAStar = new Path_AStar(currTile.world, currTile, destTile, true); //FIXME item retrieval is screwing up due to this //myJob.characterStandOnTile);
+                pathAStar = new Path_AStar(currTile.world, currTile, destTile, myJob.characterStandOnTile);
                 if (pathAStar.Length() == 0)
                 {
                     Debug.LogError("Character: Tick_DoMovement: Path_AStar returned no path to dest");
@@ -331,16 +334,22 @@ public class Character : IXmlSerializable
         destTile = tile;
     }
 
-    #region relations
-
-    //TODO make this not public. Ideally this will be called when 
-    public void haveBaby()
+    void OnJobEnded(Job j)
     {
+        //Job completed or cancled
+        if (j != myJob)
+        {
+            Debug.LogError("Character - OnJobEnded - Character is looking at job that is not his. Likely job did not get unregistered.");
+            return;
+        }
 
+        j.UnregisterJobCancelCallback(OnJobEnded);
+        j.UnregisterJobCompleteCallback(OnJobEnded);
 
-
+        myJob = null;
     }
 
+    #region relations
 
     #endregion
 
@@ -375,18 +384,6 @@ public class Character : IXmlSerializable
     public void UnregisterCharacterChangedCallback(Action<Character> cb)
     {
         cbCharacterChanged -= cb;
-    }
-
-    void OnJobEnded(Job j)
-    {
-        //Job completed or cancled
-        if (j != myJob)
-        {
-            Debug.LogError("Character - OnJobEnded - Character is looking at job that is not his. Likely job did not get unregistered.");
-            return;
-        }
-
-        myJob = null;
     }
 
     #endregion

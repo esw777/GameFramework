@@ -59,6 +59,8 @@ public class InventoryManager
 			}
 
             inventoryDic[tile.inventory.objectType].Add( tile.inventory );
+
+            tile.world.OnInventoryCreated(tile.inventory);
 		}
 
 		return true;
@@ -148,8 +150,9 @@ public class InventoryManager
     /// <param name="objectType"></param>
     /// <param name="t">Tile to measure distance from.</param>
     /// <param name="desiredAmount">Desired amount, If no stack has enough, returns largest stack.</param>
+    /// <param name="canTakeFromStockpile">Whether to consider stockpiles when finding items</param>
     /// <returns></returns>
-    public Inventory GetClosestInventoryOfType(string objectType, Tile t, int desiredAmount)
+    public Inventory GetClosestInventoryOfType(string objectType, Tile t, int desiredAmount, bool canTakeFromStockpile)
     {
         //FIXME, this does not actually return closest stack at the moment.
             //This is due to inventory database not being fully implemented (separated out tile/job/character/room inventories.)
@@ -165,7 +168,10 @@ public class InventoryManager
         {
             if (inv.tile != null)
             {
-                return inv;
+                if (canTakeFromStockpile || inv.tile.furniture == null || inv.tile.furniture.IsStockpile() == false)
+                {
+                    return inv;
+                }
             }
         }
 

@@ -30,6 +30,8 @@ public class Job
     //Call when job is worked on
     Action<Job> cbJobWorked;
 
+    public bool canTakeFromStockpile = true;
+
     public Dictionary<string, Inventory> inventoryRequirements;
 
     public Job(Tile tile, string jobObjectType, Action<Job> cbJobComplete, float jobTime, Inventory[] invReqs, bool characterStandOnTile = true)
@@ -77,6 +79,18 @@ public class Job
 
     public void DoWork(float workTime)
     {
+        if (HasAllRequiredMaterials() == false)
+        {
+            Debug.Log("Tried to do work on a job that does not have a required materials.");
+
+            if (cbJobWorked != null)
+            {
+                cbJobWorked(this);
+            }
+
+            return;
+        }
+
         jobTime -= workTime;
 
         if (cbJobWorked != null)
@@ -169,7 +183,7 @@ public class Job
 
     public void RegisterJobWorkedCallback(Action<Job> cb)
     {
-        cbJobWorked -= cb;
+        cbJobWorked += cb;
     }
 
     public void UnregisterJobWorkedCallback(Action<Job> cb)
