@@ -14,13 +14,25 @@ public class MouseController : MonoBehaviour
     Vector3 dragStartPosition;
     List<GameObject> dragPreviewGameObjects;
 
-    BuildModeController bmc; 
+    FurnitureSpriteController fsc;
+    BuildModeController bmc;
+
+    bool isDragging = false;
+
+    enum MouseMode
+    {
+        SELECT,
+        BUILD
+    }
+    MouseMode currentMode = MouseMode.SELECT;
 
     // Use this for initialization
     void Start()
     {
         dragPreviewGameObjects = new List<GameObject>();
         bmc = GameObject.FindObjectOfType<BuildModeController>();
+
+        fsc = GameObject.FindObjectOfType<FurnitureSpriteController>();
     }
 
     //Returns mouse position in world space
@@ -40,6 +52,20 @@ public class MouseController : MonoBehaviour
         currFramePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         currFramePosition.z = 0;
 
+        if (Input.GetKeyUp(KeyCode.Escape))
+        {
+            if (currentMode == MouseMode.BUILD)
+            {
+                currentMode = MouseMode.SELECT;
+            }
+
+            else
+            {
+                //TODO
+                // Debug.Log("Show game menu");
+            }
+        }
+
         //UpdateCursor();
         UpdateDragging();
         UpdateCameraMovement();
@@ -58,10 +84,42 @@ public class MouseController : MonoBehaviour
             return;
         }
 
+        // Clean up old drag previews
+        while (dragPreviewGameObjects.Count > 0)
+        {
+            GameObject go = dragPreviewGameObjects[0];
+            dragPreviewGameObjects.RemoveAt(0);
+            SimplePool.Despawn(go);
+        }
+
+        if (currentMode != MouseMode.BUILD)
+        {
+            isDragging = false;
+            return;
+        }
+
         // Start Drag
         if (Input.GetMouseButtonDown(0))
         {
             dragStartPosition = currFramePosition;
+            isDragging = true;
+        }
+
+        else if (isDragging == false) // prevent infinate dragging.
+        {
+            dragStartPosition = currFramePosition;
+        }
+
+        if (bmc.IsObjectDraggable() == false)
+        {
+            dragStartPosition = currFramePosition;
+        }
+
+        if (Input.GetMouseButtonUp(1) || Input.GetKeyUp(KeyCode.Escape))
+        {
+            //Right mouse button was released.
+            //Cancles building / dragging.
+            isDragging = false;
         }
 
         int start_x = Mathf.FloorToInt(dragStartPosition.x + 0.5f);
@@ -83,15 +141,7 @@ public class MouseController : MonoBehaviour
             start_y = tmp;
         }
 
-        // Clean up old drag previews
-        while (dragPreviewGameObjects.Count > 0)
-        {
-            GameObject go = dragPreviewGameObjects[0];
-            dragPreviewGameObjects.RemoveAt(0);
-            SimplePool.Despawn(go);
-        }
-
-        if (Input.GetMouseButton(0))
+        //if (isDragging)
         {
             // Display a preview of the drag area
             for (int x = start_x; x <= end_x; x++)
@@ -102,17 +152,28 @@ public class MouseController : MonoBehaviour
                     if (t != null)
                     {
                         // Display the building hint on top of this tile position
-                        GameObject go = SimplePool.Spawn(circleCursorPrefab, new Vector3(x, y, 0), Quaternion.identity);
-                        go.transform.SetParent(this.transform, true);
-                        dragPreviewGameObjects.Add(go);
+                        if (bmc.buildModeIsObjects)
+                        {
+                            ShowFurnitureSpriteAtTile(bmc.buildModeObjectType, t);                            
+                        }
+
+                        else
+                        {
+                            GameObject go = SimplePool.Spawn(circleCursorPrefab, new Vector3(x, y, 0), Quaternion.identity);
+                            go.transform.SetParent(this.transform, true);
+                            dragPreviewGameObjects.Add(go);
+                        }
+
                     }
                 }
             }
         }
 
         // End Drag
-        if (Input.GetMouseButtonUp(0))
+        if (isDragging && Input.GetMouseButtonUp(0))
         {
+            isDragging = false;
+
             // Loop through all the tiles
             for (int x = start_x; x <= end_x; x++)
             {
@@ -144,5 +205,43 @@ public class MouseController : MonoBehaviour
         Camera.main.orthographicSize -= Camera.main.orthographicSize * Input.GetAxis("Mouse ScrollWheel");
 
         Camera.main.orthographicSize = Mathf.Clamp(Camera.main.orthographicSize, 3f, 25f);
+    }
+
+    void ShowFurnitureSpriteAtTile(string furnitureType, Tile t)
+    {
+        GameObject go = new GameObject();
+        go.transform.SetParent(this.transform, true);
+        dragPreviewGameObjects.Add(go);
+
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = fsc.GetSpriteForFurniture(furnitureType);
+        sr.sortingLayerName = "Jobs";
+
+        //TODO this tinting does not work well if the object is naturally green or red. Need to do custom shader for this.
+        if (WorldController.Instance.world.IsFurniturePlacementValid(furnitureType, t))
+        {
+            //Make it 30% transparent and tint green
+            sr.color = new Color(0.5f, 1f, 0.5f, 0.3f);
+        }
+
+        else //not valid
+        {
+            //Make it 30% transparent and tint red
+            sr.color = new Color(1f, 0.5f, 0.5f, 0.3f);
+        }
+
+        Furniture proto = t.world.furniturePrototypes[furnitureType];
+
+        go.transform.position = new Vector3(t.X + ((proto.Width - 1) / 2f), t.Y + ((proto.Height - 1) / 2f), 0);
+    }
+
+    public void StartBuildMode()
+    {
+        currentMode = MouseMode.BUILD;
+    }
+
+    public void StartSelectMode()
+    {
+        currentMode = MouseMode.SELECT;
     }
 }

@@ -21,6 +21,9 @@ public class Job
     //TODO bad, change this to generic object
     public string jobObjectType { get; protected set; }
 
+    //TODO again not the best way to do this.
+    public Furniture furniturePrototype;
+
     //Call when job is complete (jobTime = 0)
     Action<Job> cbJobComplete;
 

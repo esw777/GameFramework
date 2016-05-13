@@ -18,7 +18,7 @@ public class World : IXmlSerializable
     //The pathfinding graph used to navigate world.
     public Path_TileGraph tileGraph;
 
-	Dictionary<string, Furniture> furniturePrototypes;
+	public Dictionary<string, Furniture> furniturePrototypes;
     public Dictionary<string, Job> furnitureJobPrototypes;
 
 	// The tile width of the world.
@@ -164,7 +164,6 @@ public class World : IXmlSerializable
                     )
         );
 
-        //TODO tmp testing
         furniturePrototypes["Door"].SetParameter("openness", 0);
         furniturePrototypes["Door"].SetParameter("is_opening", 0);
         furniturePrototypes["Door"].RegisterUpdateAction(FurnitureActions.Door_UpdateAction);
@@ -190,6 +189,19 @@ public class World : IXmlSerializable
             -1, 
             null)
         );
+
+
+        furniturePrototypes.Add("Oxygen_Generator",
+            new Furniture(
+                    "Oxygen_Generator",
+                    10,  // Movecost
+                    2,  // Width
+                    2,  // Height
+                    false, // Links to neighbours and "sort of" becomes part of a large object
+                    false  // isRoomBorder - the "Room" code will consider this furniture type a border
+                )
+            );
+
     }
 
     public Character CreateCharacter( Tile t)

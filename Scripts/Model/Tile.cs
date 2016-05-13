@@ -74,26 +74,39 @@ public class Tile : IXmlSerializable
 		this.Y = y;
 	}
 
+    public bool UninstallFurninture()
+    {
+        //FIXME does not work for multi tile.
+        furniture = null;
+        return true;
+    }
+
+
 	public bool PlaceFurniture(Furniture objInstance)
     {
-		if(objInstance == null)
+        if (objInstance == null)
         {
-			// We are uninstalling whatever was here before.
-			furniture = null;
-			return true;
-		}
+            //uninstalling furninture
+            //FIXME does not work for multi tile.
+            return UninstallFurninture();
+        }
 
-		// objInstance isn't null
-		if(furniture != null)
+        if (objInstance.IsValidPosition(this) == false)
         {
+            Debug.LogError("Trying to assign a furniture to a tile that is not valid");
+            return false;
+        }
+        
+        //Loop for multi-tile objects.
+        for (int x_off = X; x_off < (X + objInstance.Width); x_off++)
+        {
+            for (int y_off = Y; y_off < (Y + objInstance.Height); y_off++)
+            {
+                Tile t = world.GetTileAt(x_off, y_off);
+                t.furniture = objInstance;
+            }
+        }
 
-			Debug.LogError("Trying to assign a furniture to a tile that already has one!");
-			return false;
-		}
-
-		// At this point, everything's fine!
-
-		furniture = objInstance;
 		return true;
 	}
 

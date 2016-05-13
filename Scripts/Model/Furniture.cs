@@ -44,8 +44,8 @@ public class Furniture : IXmlSerializable
     public bool isRoomBorder { get; protected set; }
 
     // For example, a table might be 3x2
-    int width;
-	int height;
+    public int Width { get; protected set; }
+	public int Height { get; protected set; }
 
     public Color tint = Color.white; //Graphics in the model TODO
 
@@ -56,7 +56,6 @@ public class Furniture : IXmlSerializable
 
     Func<Tile, bool> funcPositionValidation;
 
-	// TODO: Implement larger objects
 	// TODO: Implement object rotation
 
     //public due to serializer reqs 
@@ -68,25 +67,30 @@ public class Furniture : IXmlSerializable
     }
 
     //Copy constructor - Clone() should be called instead of this. Direct calls will break sub-classing
-    protected Furniture(Furniture furn)
+    protected Furniture(Furniture other)
     {
-        this.objectType = furn.objectType;
-        this.movementCost = furn.movementCost;
-        this.isRoomBorder = furn.isRoomBorder;
-        this.width = furn.width;
-        this.height = furn.height;
-        this.tint = furn.tint;
-        this.linksToNeighbour = furn.linksToNeighbour;
+        this.objectType = other.objectType;
+        this.movementCost = other.movementCost;
+        this.isRoomBorder = other.isRoomBorder;
+        this.Width = other.Width;
+        this.Height = other.Height;
+        this.tint = other.tint;
+        this.linksToNeighbour = other.linksToNeighbour;
 
-        this.furnitureParameters = new Dictionary<string, float>(furn.furnitureParameters);
+        this.furnitureParameters = new Dictionary<string, float>(other.furnitureParameters);
         jobs = new List<Job>();
 
-        if (furn.updateActions != null)
+        if (other.updateActions != null)
         {
-            this.updateActions = (Action<Furniture, float>)furn.updateActions.Clone();
+            this.updateActions = (Action<Furniture, float>)other.updateActions.Clone();
         }
 
-        this.IsEnterable = furn.IsEnterable;
+        if (other.funcPositionValidation != null)
+        {
+            this.funcPositionValidation = (Func<Tile, bool>)other.funcPositionValidation.Clone();
+        }
+
+        this.IsEnterable = other.IsEnterable;
     }
 
     //Makes a copy of the current furniture object. Sub classes should override this.
@@ -100,8 +104,8 @@ public class Furniture : IXmlSerializable
 		this.objectType = objectType;
         this.movementCost = movementCost;
         this.isRoomBorder = isRoomBorder;
-        this.width = width;
-        this.height = height;
+        this.Width = width;
+        this.Height = height;
         this.linksToNeighbour = linksToNeighbour;
 
         this.funcPositionValidation = this.__IsValidPosition;
@@ -179,18 +183,31 @@ public class Furniture : IXmlSerializable
     //TODO replace by validation checks farmed out to LUA files.
     private bool __IsValidPosition(Tile t)
     {
-        if (t.furniture != null)
+        if (t == null)
         {
-            //Already something here
-            return false;
+            Debug.LogError("wtf uis his)");
         }
 
-        if (t.Type != TileType.Floor)
+        //Loop for multi tile furniture
+        for (int x_off = t.X; x_off < (t.X + Width); x_off++)
         {
-            //invalid position
-            return false;
-        }
+            for (int y_off = t.Y; y_off < (t.Y + Height); y_off++)
+            {
+                Tile t2 = t.world.GetTileAt(x_off, y_off);
 
+                if (t2.furniture != null)
+                {
+                    //Already something here
+                    return false;
+                }
+
+                if (t2.Type != TileType.Floor)
+                {
+                    //invalid position
+                    return false;
+                }
+            }
+        }
         return true;
     }
    

@@ -52,7 +52,7 @@ public class FurnitureSpriteController : MonoBehaviour
         //Debug.Log("OnFurnitureCreated");
         // Create a visual GameObject linked to this data.
 
-        // FIXME: Does not consider multi-tile objects nor rotated objects
+        // FIXME: Does not consider rotated objects
 
         // This creates a new GameObject and adds it to our scene.
         GameObject furn_go = new GameObject();
@@ -61,9 +61,10 @@ public class FurnitureSpriteController : MonoBehaviour
         furnitureGameObjectMap.Add(furn, furn_go);
 
         furn_go.name = furn.objectType + "_" + furn.tile.X + "_" + furn.tile.Y;
-        furn_go.transform.position = new Vector3(furn.tile.X, furn.tile.Y, 0);
+        furn_go.transform.position = new Vector3(furn.tile.X + ((furn.Width - 1)/2f), furn.tile.Y + ((furn.Height-1)/2f), 0);
         furn_go.transform.SetParent(this.transform, true);
 
+        //hardcoding stuff that shouldn't be hardcoded probabaly
         if (furn.objectType == "Door")
         {
             //Check to see if door needs to be rotated 90 degrees to NS from EW
