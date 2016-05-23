@@ -86,6 +86,7 @@ public class FurnitureSpriteController : MonoBehaviour
         // Register our callback so that our GameObject gets updated whenever
         // the object's into changes.
         furn.RegisterOnChangedCallback(OnFurnitureChanged);
+        furn.RegisterOnRemovedCallback(OnFurnitureRemoved);
     }
 
     void OnFurnitureChanged(Furniture furn)
@@ -107,6 +108,20 @@ public class FurnitureSpriteController : MonoBehaviour
         furn_go.GetComponent<SpriteRenderer>().color = furn.tint;
 
     }
+
+    void OnFurnitureRemoved(Furniture furn)
+    {
+        if (furnitureGameObjectMap.ContainsKey(furn) == false)
+        {
+            Debug.LogError("OnFurnitureChanged -- trying to change visuals for furniture not in our map.");
+            return;
+        }
+
+        GameObject furn_go = furnitureGameObjectMap[furn];
+        Destroy(furn_go);
+        furnitureGameObjectMap.Remove(furn);
+    }
+
 
     public Sprite GetSpriteForFurniture(Furniture furn)
     {

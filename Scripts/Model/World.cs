@@ -99,7 +99,7 @@ public class World : IXmlSerializable
 
         tiles = new Tile[Width, Height];
         roomList = new List<Room>();
-        roomList.Add(new Room()); //"Outside" is considered one giant room. An empty map will be one giant room.
+        roomList.Add(new Room(this)); //"Outside" is considered one giant room. An empty map will be one giant room.
 
         for (int x = 0; x < Width; x++)
         {
@@ -202,6 +202,7 @@ public class World : IXmlSerializable
                 )
             );
 
+        furniturePrototypes["Oxygen_Generator"].RegisterUpdateAction(FurnitureActions.OxygenGenerator_UpdateAction);
     }
 
     public Character CreateCharacter( Tile t)
@@ -275,7 +276,7 @@ public class World : IXmlSerializable
 	}
 
 
-	public Furniture PlaceFurniture(string objectType, Tile t)
+	public Furniture PlaceFurniture(string objectType, Tile t, bool doRoomFloodFill = true)
     {
 		//Debug.Log("PlaceInstalledObject");
 		// TODO: This function assumes 1x1 tiles -- change this later!
@@ -294,12 +295,14 @@ public class World : IXmlSerializable
 			return null;
 		}
 
+        furn.RegisterOnRemovedCallback(OnFurnitureRemoved);
+
         furnitureList.Add(furn);
 
         //Redefine rooms if needed
-        if (furn.isRoomBorder)
+        if (doRoomFloodFill && furn.isRoomBorder)
         {
-            Room.ReCalculateRooms(furn);
+            Room.ReCalculateRoomsAdd(furn);
         }
 
 		if(cbFurnitureCreated != null)
@@ -350,6 +353,11 @@ public class World : IXmlSerializable
         {
             cbInventoryCreated(inv);
         }
+    }
+
+    public void OnFurnitureRemoved( Furniture furn)
+    {
+        furnitureList.Remove(furn);
     }
 
     #region SaveLoadCode
@@ -496,10 +504,15 @@ public class World : IXmlSerializable
                 int x = int.Parse(reader.GetAttribute("X"));
                 int y = int.Parse(reader.GetAttribute("Y"));
 
-                Furniture furn = PlaceFurniture(reader.GetAttribute("objectType"), tiles[x, y]);
+                Furniture furn = PlaceFurniture(reader.GetAttribute("objectType"), tiles[x, y], false);
                 furn.ReadXml(reader);
 
             } while (reader.ReadToNextSibling("Furniture"));
+
+            foreach (Furniture furn in furnitureList)
+            {
+                Room.ReCalculateRoomsAdd(furn, true);
+            }
         }
     }
 

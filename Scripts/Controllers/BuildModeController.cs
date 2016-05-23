@@ -2,9 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine.EventSystems;
 
+public enum BuildMode
+{
+    FLOOR,
+    FURNITURE,
+    DECONSTRUCT
+}
+
+
 public class BuildModeController : MonoBehaviour
 {
-    public bool buildModeIsObjects = false;
+    public BuildMode buildMode = BuildMode.FLOOR;
     TileType buildModeTile = TileType.Floor;
     public string buildModeObjectType;
 
@@ -27,7 +35,7 @@ public class BuildModeController : MonoBehaviour
 
     public bool IsObjectDraggable()
     {
-        if (buildModeIsObjects == false)
+        if (buildMode == BuildMode.FLOOR || buildMode == BuildMode.DECONSTRUCT)
         {
             //floors
             return true;
@@ -41,7 +49,7 @@ public class BuildModeController : MonoBehaviour
 
     public void DoBuild(Tile t)
     {
-        if (buildModeIsObjects)
+        if (buildMode == BuildMode.FURNITURE)
         {
             string furnitureType = buildModeObjectType;
 
@@ -76,32 +84,53 @@ public class BuildModeController : MonoBehaviour
                 WorldController.Instance.world.jobQueue.Enqueue(j, true);
             }
         }
-        else
+
+        else if (buildMode == BuildMode.FLOOR)
         {
             // We are in tile-changing mode.
             t.Type = buildModeTile;
+        }
+
+        else if (buildMode == BuildMode.DECONSTRUCT)
+        {
+            //TODO
+            if (t.furniture != null)
+            {
+                t.furniture.Deconstruct();
+            }
+        }
+
+        else
+        {
+            Debug.LogError("Unknown build mode ");
         }
     }
 
     #region SetModes
     public void SetMode_BuildFloor()
     {
-        buildModeIsObjects = false;
+        buildMode = BuildMode.FLOOR;
         buildModeTile = TileType.Floor;
         mouseController.StartBuildMode();
     }
 
-    public void SetMode_Bulldoze()
+    public void SetMode_RemoveFloor()
     {
-        buildModeIsObjects = false;
+        buildMode = BuildMode.FLOOR;
         buildModeTile = TileType.Empty;
         mouseController.StartBuildMode();
     }
 
     public void SetMode_BuildFurniture(string objectType)
     {
-        buildModeIsObjects = true;
+        buildMode = BuildMode.FURNITURE;
         buildModeObjectType = objectType;
+        mouseController.StartBuildMode();
+    }
+
+    public void SetMode_Deconstruct()
+    {
+        buildMode = BuildMode.DECONSTRUCT;
         mouseController.StartBuildMode();
     }
     #endregion

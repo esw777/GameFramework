@@ -52,7 +52,8 @@ public class Furniture : IXmlSerializable
 	public bool linksToNeighbour {get; protected set;}
 
     //TODO make get/set functions for furnitureParameters and call onchanged in the set rather than make this public.
-    public Action<Furniture> cbOnChanged; 
+    public Action<Furniture> cbOnChanged;
+    public Action<Furniture> cbOnRemoved;
 
     Func<Tile, bool> funcPositionValidation;
 
@@ -279,6 +280,26 @@ public class Furniture : IXmlSerializable
         return objectType == "Stockpile";
     }
 
+    public void Deconstruct()
+    {
+
+        tile.UnplaceFurninture();
+
+        if (cbOnRemoved != null)
+        {
+            cbOnRemoved(this);
+        }
+        //All references to furniture should be gone now - GC should work.
+
+        if (isRoomBorder)
+        {
+            Room.ReCalculateRoomsDelete(this.tile);
+        }
+
+        tile.world.InvalidateTileGraph();
+
+    }
+
     #region SaveLoadCode
     //For serializer - must be parameter-less
 
@@ -334,6 +355,16 @@ public class Furniture : IXmlSerializable
     public void UnregisterOnChangedCallback(Action<Furniture> callbackFunc)
     {
         cbOnChanged -= callbackFunc;
+    }
+
+    public void RegisterOnRemovedCallback(Action<Furniture> callbackFunc)
+    {
+        cbOnRemoved += callbackFunc;
+    }
+
+    public void UnregisterOnRemovedCallback(Action<Furniture> callbackFunc)
+    {
+        cbOnRemoved -= callbackFunc;
     }
     #endregion
 }

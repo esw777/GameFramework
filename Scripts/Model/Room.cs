@@ -1,17 +1,20 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Room
 {
-    //temp example room variables
-    public float temperature = 0f;
-    public float oxygen = 0f;
+    Dictionary<string, float> atmosphericGasses;
 
     List<Tile> tiles;
 
-    public Room()
+    World world;
+
+    public Room(World world)
     {
+        this.world = world;
         tiles = new List<Tile>();
+        atmosphericGasses = new Dictionary<string, float>();
     }
 
     public void AssignTile(Tile t)
@@ -34,10 +37,75 @@ public class Room
 
     public void UnAssignTile(Tile t)
     {
-        if (t.room != t.world.GetOutsideRoom())
+        if (t.room != world.GetOutsideRoom())
         {
             tiles.Remove(t);
         }
+    }
+
+    public bool IsOutsideRoom()
+    {
+        return this == world.GetOutsideRoom();
+    }
+
+    public void ChangeGas(string name, float amount)
+    {
+        if (IsOutsideRoom())
+        {
+            return;
+        }
+
+        if (atmosphericGasses.ContainsKey(name))
+        {
+            atmosphericGasses[name] += amount;
+        }
+
+        else
+        {
+            atmosphericGasses[name] = amount;
+        }
+
+        if (atmosphericGasses[name] < 0)
+        {
+            atmosphericGasses[name] = 0;
+        }
+    }
+
+    public float GetGasAmount(string name)
+    {
+        if (atmosphericGasses.ContainsKey(name))
+        {
+            return atmosphericGasses[name];
+        }
+
+        return 0;
+    }
+
+    public float GetGasPercentage(string name)
+    {
+        if (atmosphericGasses.ContainsKey(name) == false)
+        {
+            return 0f;
+        }
+
+        float t = 0;
+
+        foreach(string n in atmosphericGasses.Keys)
+        {
+            t += atmosphericGasses[n];
+        }
+
+        if (t != 0)
+        {
+            return atmosphericGasses[name] / t;
+        }
+
+        return 0f;
+    }
+
+    public string[] GetGasNames()
+    {
+        return atmosphericGasses.Keys.ToArray();
     }
 
     //Assigns all tiles to "Outside" room
@@ -45,12 +113,76 @@ public class Room
     {
         for (int i = 0; i < tiles.Count; i++)
         {
-            tiles[i].room = tiles[i].world.GetOutsideRoom();
+            tiles[i].room = world.GetOutsideRoom();
         }
         tiles = new List<Tile>();
     }
 
-    public static void ReCalculateRooms(Tile sourceTile)
+    //Combines two rooms. Usually baseRoom should be the lower index room in the world's room list.
+    public void MergeRoom(Room baseRoom, Room roomToMerge)
+    {
+        //Shortcut if merging to outside room
+        if (baseRoom == world.GetOutsideRoom())
+        {
+            roomToMerge.UnAssignAllTiles();
+            world.DeleteRoom(roomToMerge);
+            return;
+        }
+
+        float baseRoomTileCount = baseRoom.tiles.Count;
+        float roomToMergeTileCount = roomToMerge.tiles.Count;
+        float totalTiles = baseRoomTileCount + roomToMergeTileCount;
+
+        if (totalTiles < 1)
+        {
+            totalTiles = 1; //prevent divide by 0.
+            Debug.LogError("MergeRooms - Totaltiles is less than 1");
+        }
+
+        while (roomToMerge.tiles.Count > 0)
+        {
+            baseRoom.AssignTile(roomToMerge.tiles[0]);
+        }
+
+        List<string> tmpkeysList = new List<string>(baseRoom.atmosphericGasses.Keys);
+
+        foreach (string key in tmpkeysList)
+        {
+            //Both rooms contain same gas
+            if (baseRoom.atmosphericGasses.ContainsKey(key) && roomToMerge.atmosphericGasses.ContainsKey(key))
+            {
+                baseRoom.atmosphericGasses[key] = 
+                    (baseRoom.atmosphericGasses[key] * baseRoomTileCount / totalTiles) + 
+                    (roomToMerge.atmosphericGasses[key] * roomToMergeTileCount / totalTiles);
+            }
+            //Only base room contains a gas
+            else
+            {
+                baseRoom.atmosphericGasses[key] *= (baseRoomTileCount / totalTiles);
+            }
+        }
+
+        tmpkeysList = new List<string>(roomToMerge.atmosphericGasses.Keys);
+
+        //Only merging room contains a gas
+        foreach(string key in tmpkeysList)
+        {
+            if ((baseRoom.atmosphericGasses.ContainsKey(key) == false) && (roomToMerge.atmosphericGasses.ContainsKey(key)))
+            {
+                baseRoom.atmosphericGasses.Add(key, (roomToMerge.atmosphericGasses[key] * roomToMergeTileCount / totalTiles));
+            }
+        }
+
+        if (roomToMerge.tiles.Count > 0)
+        {
+            Debug.LogError("Room did not merge correctly, count = " + roomToMerge.tiles.Count);
+        }
+
+        world.DeleteRoom(roomToMerge);
+             
+    }
+
+    public static void ReCalculateRoomsDelete(Tile sourceTile)
     {
         //Called when a furniture that isRoomBorder is removed or destroyed
 
@@ -59,19 +191,47 @@ public class Room
             return; //This tile is still a RoomBorder and thus cant be part of a room
         }
 
+        Tile[] neighbors = sourceTile.GetNeighbours(true);
+        int lowestRoomIndex = 65000; //if we ever have more than 65k rooms then the mapsize must be astronomical TODO
+
+        //Find lowest room index out of neighbors
+        foreach (Tile t in neighbors)
+        {
+            int tmp = sourceTile.world.roomList.IndexOf(t.room);
+            if (tmp >= 0 && tmp < lowestRoomIndex)
+            {
+                lowestRoomIndex = tmp;
+            }
+        }
+        //Merge all neighboring rooms into one.
+        foreach(Tile t in neighbors)
+        {
+            if (sourceTile.world.roomList.IndexOf(t.room) > lowestRoomIndex)
+            {
+                //Merge to lowestRoom
+                t.room.MergeRoom(sourceTile.world.roomList[lowestRoomIndex], t.room);
+            }
+        }
+
+        //Add the newly walkable tile to the room;
+        sourceTile.world.roomList[lowestRoomIndex].AssignTile(sourceTile);
+
         //DoFloodFill(sourceTile, null); //TODO this doesn't work with current DoFloodFill() method
     }
 
-    public static void ReCalculateRooms(Furniture sourceFurniture)
+    public static void ReCalculateRoomsAdd(Furniture sourceFurniture, bool initialLoad = false)
     {
-        //TODO if FloodFill algorithm is used, it destroys the existing room regardless. This is probably bad.
         //Issue is currrently avoided by copying old room paremeters into the new room.
-
-        //TODO this function will break when deleting walls is implemented.
 
         //sourceFurniture is the new piece of furniture potentially causing new rooms to be formed.
         //Check neighbours of the furniture's tile.
         //Do floodfill algorithm to find new rooms.
+
+        if (sourceFurniture.isRoomBorder == false)
+        {
+            return; //Somehow this got called when it should not have
+            Debug.LogError("floodfill add called with non room border furniture");
+        }
 
         //If neighbouring furniture to N and S or E and W are also considered roomBorders, recalculate room.
         //Else the new sourceFurniture will not have created a new room. 
@@ -102,14 +262,17 @@ public class Room
         //Start FloodFill 
         foreach (Tile t in neighbors)
         {
-            DoFloodFill(t, oldRoom);
+            if (t.room != null && (initialLoad == false || t.room.IsOutsideRoom()))
+            {
+                DoFloodFill(t, oldRoom);
+            }
         }
 
         sourceFurniture.tile.room = null;
         oldRoom.tiles.Remove(sourceFurniture.tile);
 
         //Delete current room if not outside
-        if (oldRoom != sourceFurniture.tile.world.GetOutsideRoom())
+        if (oldRoom.IsOutsideRoom() == false)
         {
             //Old room should have 0 tiles assigned to it at this point.
             //So should only result in this room being removed from world's room list.
@@ -118,7 +281,7 @@ public class Room
             if (oldRoom.tiles.Count > 0)
             {
                 //This triggered when tile/foor got deleted while building a wall (causing room recalc)
-                Debug.LogError("Room:ReCalculateRooms: Room about to be deleted still has tiles.");
+                Debug.LogError("Room:ReCalculateRoomsAdd: Room about to be deleted still has tiles.");
             }
 
             sourceFurniture.tile.world.DeleteRoom(oldRoom);
@@ -152,7 +315,7 @@ public class Room
         }
 
         //At this point, we have a valid tile that needs to be put into a new room.
-        Room newRoom = new Room();
+        Room newRoom = new Room(oldRoom.world);
         Queue<Tile> tilesToCheckQueue = new Queue<Tile>();
         tilesToCheckQueue.Enqueue(tile);
 
@@ -195,8 +358,10 @@ public class Room
     //This copies all room parameters from one room into another.
     protected static void CopyParameters(Room sourceRoom, Room targetRoom)
     {
-        targetRoom.temperature = sourceRoom.temperature;
-        targetRoom.oxygen = sourceRoom.oxygen;
+        foreach(string n in sourceRoom.atmosphericGasses.Keys)
+        {
+            targetRoom.atmosphericGasses[n] = sourceRoom.atmosphericGasses[n];
+        }
     }
 
 }//Class room

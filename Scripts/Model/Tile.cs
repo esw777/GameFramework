@@ -74,10 +74,28 @@ public class Tile : IXmlSerializable
 		this.Y = y;
 	}
 
-    public bool UninstallFurninture()
+    public bool UnplaceFurninture()
     {
-        //FIXME does not work for multi tile.
-        furniture = null;
+        //TODO name is dumb
+
+        if (furniture == null)
+        {
+            return false;
+        }
+
+        int width = furniture.Width;
+        int height = furniture.Height;
+
+        //Loop for multi-tile objects.
+        for (int x_off = X; x_off < (X + width); x_off++)
+        {
+            for (int y_off = Y; y_off < (Y + height); y_off++)
+            {
+                Tile t = world.GetTileAt(x_off, y_off);
+                t.furniture = null;
+            }
+        }
+
         return true;
     }
 
@@ -88,7 +106,7 @@ public class Tile : IXmlSerializable
         {
             //uninstalling furninture
             //FIXME does not work for multi tile.
-            return UninstallFurninture();
+            return UnplaceFurninture();
         }
 
         if (objInstance.IsValidPosition(this) == false)

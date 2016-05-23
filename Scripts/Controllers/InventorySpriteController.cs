@@ -55,7 +55,7 @@ public class InventorySpriteController : MonoBehaviour
     {
         // Create a visual GameObject linked to this data.
 
-        Debug.Log("SpriteController: OnInventoryCreated called");
+        //Debug.Log("SpriteController: OnInventoryCreated called");
 
         // This creates a new GameObject and adds it to our scene.
         GameObject inv_go = new GameObject();

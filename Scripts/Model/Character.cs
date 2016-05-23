@@ -231,7 +231,7 @@ public class Character : IXmlSerializable
             return;
         }
 
-        Debug.LogError("something funky");
+        Debug.LogError("something funky - likely character is doing a job that has no defined job");
         return; 
     }
 

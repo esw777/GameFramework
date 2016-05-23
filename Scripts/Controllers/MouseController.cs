@@ -118,7 +118,7 @@ public class MouseController : MonoBehaviour
         if (Input.GetMouseButtonUp(1) || Input.GetKeyUp(KeyCode.Escape))
         {
             //Right mouse button was released.
-            //Cancles building / dragging.
+            //Cancels building / dragging.
             isDragging = false;
         }
 
@@ -152,7 +152,7 @@ public class MouseController : MonoBehaviour
                     if (t != null)
                     {
                         // Display the building hint on top of this tile position
-                        if (bmc.buildModeIsObjects)
+                        if (bmc.buildMode == BuildMode.FURNITURE)
                         {
                             ShowFurnitureSpriteAtTile(bmc.buildModeObjectType, t);                            
                         }
