@@ -67,7 +67,7 @@ public class BuildModeController : MonoBehaviour
                 else
                 {
                     Debug.LogError("No furniture job prototype for: " + furnitureType);
-                    j = new Job(t, furnitureType, FurnitureActions.JobComplete_FurnitureBuilding, 1f, null, false);
+                    j = new Job(t, furnitureType, FurnitureActions.JobCompleted_FurnitureBuilding, 1f, null, false);
                 }
 
                 j.furniturePrototype = WorldController.Instance.world.furniturePrototypes[furnitureType];
@@ -75,7 +75,7 @@ public class BuildModeController : MonoBehaviour
                 t.pendingFurnitureJob = j;
 
                 //TODO has to be more simple way to do this
-                j.RegisterJobCancelCallback((theJob) =>
+                j.RegisterJobStoppedCallback((theJob) =>
                     {
                         theJob.tile.pendingFurnitureJob = null;
                     }

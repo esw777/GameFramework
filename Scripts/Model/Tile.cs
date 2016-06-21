@@ -38,9 +38,6 @@ public class Tile : IXmlSerializable
     //True if pending furniture job on this tile
     public Job pendingFurnitureJob;
 
-    // We need to know the context in which we exist. Probably. Maybe.
-    public World world { get; protected set; }
-
     //The room that this tile is a part of
     public Room room; // { get; protected set; }
 
@@ -67,9 +64,8 @@ public class Tile : IXmlSerializable
 	Action<Tile> cbTileChanged;
 
 	// Initializes a new instance of the Tile class
-	public Tile( World world, int x, int y )
+	public Tile(int x, int y )
     {
-		this.world = world;
 		this.X = x;
 		this.Y = y;
 	}
@@ -91,7 +87,7 @@ public class Tile : IXmlSerializable
         {
             for (int y_off = Y; y_off < (Y + height); y_off++)
             {
-                Tile t = world.GetTileAt(x_off, y_off);
+                Tile t = World.current.GetTileAt(x_off, y_off);
                 t.furniture = null;
             }
         }
@@ -120,7 +116,7 @@ public class Tile : IXmlSerializable
         {
             for (int y_off = Y; y_off < (Y + objInstance.Height); y_off++)
             {
-                Tile t = world.GetTileAt(x_off, y_off);
+                Tile t = World.current.GetTileAt(x_off, y_off);
                 t.furniture = objInstance;
             }
         }
@@ -234,31 +230,31 @@ public bool IsNeighbour(Tile tile, bool diagOk)
         Tile n; //potential neighbour
 
         //North
-        n = world.GetTileAt(X, Y + 1);
+        n = World.current.GetTileAt(X, Y + 1);
         ns[0] = n;
         //East
-        n = world.GetTileAt(X + 1, Y);
+        n = World.current.GetTileAt(X + 1, Y);
         ns[1] = n;
         //South
-        n = world.GetTileAt(X, Y - 1);
+        n = World.current.GetTileAt(X, Y - 1);
         ns[2] = n;
         //West
-        n = world.GetTileAt(X - 1, Y);
+        n = World.current.GetTileAt(X - 1, Y);
         ns[3] = n;
 
         if (diagMovementAllowed)
         {
             //NE
-            n = world.GetTileAt(X + 1, Y + 1);
+            n = World.current.GetTileAt(X + 1, Y + 1);
             ns[4] = n;
             //SE
-            n = world.GetTileAt(X + 1, Y - 1);
+            n = World.current.GetTileAt(X + 1, Y - 1);
             ns[5] = n;
             //SW
-            n = world.GetTileAt(X - 1, Y - 1);
+            n = World.current.GetTileAt(X - 1, Y - 1);
             ns[6] = n;
             //NW
-            n = world.GetTileAt(X - 1, Y + 1);
+            n = World.current.GetTileAt(X - 1, Y + 1);
             ns[7] = n;
         }
 
@@ -284,22 +280,22 @@ public bool IsNeighbour(Tile tile, bool diagOk)
 
     public Tile North()
     {
-        return world.GetTileAt(X, Y + 1);
+        return World.current.GetTileAt(X, Y + 1);
     }
 
     public Tile South()
     {
-        return world.GetTileAt(X, Y - 1);
+        return World.current.GetTileAt(X, Y - 1);
     }
 
     public Tile East()
     {
-        return world.GetTileAt(X + 1, Y);
+        return World.current.GetTileAt(X + 1, Y);
     }
 
     public Tile West()
     {
-        return world.GetTileAt(X - 1, Y);
+        return World.current.GetTileAt(X - 1, Y);
     }
 
     #region callbacks
@@ -329,6 +325,7 @@ public bool IsNeighbour(Tile tile, bool diagOk)
         //Save Tile Data
         writer.WriteAttributeString("X", X.ToString());
         writer.WriteAttributeString("Y", Y.ToString());
+        writer.WriteAttributeString("RoomID", room==null ? "-1" : room.ID.ToString()); //if room is null (wall tiles) just write -1.
         writer.WriteAttributeString("Type", ((int)Type).ToString());
 
     }
@@ -336,6 +333,8 @@ public bool IsNeighbour(Tile tile, bool diagOk)
     public void ReadXml(XmlReader reader)
     {
         //Load Tile Data
+        room = World.current.GetRoomFromID(int.Parse(reader.GetAttribute("RoomID")));
+
         Type = (TileType)int.Parse(reader.GetAttribute("Type"));
 
 

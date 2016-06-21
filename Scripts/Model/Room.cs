@@ -1,18 +1,26 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 
-public class Room
+public class Room : IXmlSerializable
 {
     Dictionary<string, float> atmosphericGasses;
 
     List<Tile> tiles;
 
-    World world;
-
-    public Room(World world)
+    public int ID
     {
-        this.world = world;
+        get
+        {
+            return World.current.GetRoomID(this);
+        }
+    }
+
+    public Room()
+    {
         tiles = new List<Tile>();
         atmosphericGasses = new Dictionary<string, float>();
     }
@@ -37,7 +45,7 @@ public class Room
 
     public void UnAssignTile(Tile t)
     {
-        if (t.room != world.GetOutsideRoom())
+        if (t.room != World.current.GetOutsideRoom())
         {
             tiles.Remove(t);
         }
@@ -45,7 +53,7 @@ public class Room
 
     public bool IsOutsideRoom()
     {
-        return this == world.GetOutsideRoom();
+        return this == World.current.GetOutsideRoom();
     }
 
     public void ChangeGas(string name, float amount)
@@ -113,7 +121,7 @@ public class Room
     {
         for (int i = 0; i < tiles.Count; i++)
         {
-            tiles[i].room = world.GetOutsideRoom();
+            tiles[i].room = World.current.GetOutsideRoom();
         }
         tiles = new List<Tile>();
     }
@@ -122,10 +130,10 @@ public class Room
     public void MergeRoom(Room baseRoom, Room roomToMerge)
     {
         //Shortcut if merging to outside room
-        if (baseRoom == world.GetOutsideRoom())
+        if (baseRoom == World.current.GetOutsideRoom())
         {
             roomToMerge.UnAssignAllTiles();
-            world.DeleteRoom(roomToMerge);
+            World.current.DeleteRoom(roomToMerge);
             return;
         }
 
@@ -178,7 +186,7 @@ public class Room
             Debug.LogError("Room did not merge correctly, count = " + roomToMerge.tiles.Count);
         }
 
-        world.DeleteRoom(roomToMerge);
+        World.current.DeleteRoom(roomToMerge);
              
     }
 
@@ -197,7 +205,7 @@ public class Room
         //Find lowest room index out of neighbors
         foreach (Tile t in neighbors)
         {
-            int tmp = sourceTile.world.roomList.IndexOf(t.room);
+            int tmp = World.current.roomList.IndexOf(t.room);
             if (tmp >= 0 && tmp < lowestRoomIndex)
             {
                 lowestRoomIndex = tmp;
@@ -206,15 +214,15 @@ public class Room
         //Merge all neighboring rooms into one.
         foreach(Tile t in neighbors)
         {
-            if (sourceTile.world.roomList.IndexOf(t.room) > lowestRoomIndex)
+            if (World.current.roomList.IndexOf(t.room) > lowestRoomIndex)
             {
                 //Merge to lowestRoom
-                t.room.MergeRoom(sourceTile.world.roomList[lowestRoomIndex], t.room);
+                t.room.MergeRoom(World.current.roomList[lowestRoomIndex], t.room);
             }
         }
 
         //Add the newly walkable tile to the room;
-        sourceTile.world.roomList[lowestRoomIndex].AssignTile(sourceTile);
+        World.current.roomList[lowestRoomIndex].AssignTile(sourceTile);
 
         //DoFloodFill(sourceTile, null); //TODO this doesn't work with current DoFloodFill() method
     }
@@ -229,8 +237,8 @@ public class Room
 
         if (sourceFurniture.isRoomBorder == false)
         {
-            return; //Somehow this got called when it should not have
             Debug.LogError("floodfill add called with non room border furniture");
+            return; //Somehow this got called when it should not have
         }
 
         //If neighbouring furniture to N and S or E and W are also considered roomBorders, recalculate room.
@@ -284,7 +292,7 @@ public class Room
                 Debug.LogError("Room:ReCalculateRoomsAdd: Room about to be deleted still has tiles.");
             }
 
-            sourceFurniture.tile.world.DeleteRoom(oldRoom);
+            World.current.DeleteRoom(oldRoom);
         }
     }
 
@@ -315,7 +323,7 @@ public class Room
         }
 
         //At this point, we have a valid tile that needs to be put into a new room.
-        Room newRoom = new Room(oldRoom.world);
+        Room newRoom = new Room();
         Queue<Tile> tilesToCheckQueue = new Queue<Tile>();
         tilesToCheckQueue.Enqueue(tile);
 
@@ -351,7 +359,7 @@ public class Room
 
         CopyParameters(oldRoom, newRoom);
 
-        tile.world.AddRoom(newRoom);
+        World.current.AddRoom(newRoom);
 
     } //DoFloodFill
 
@@ -363,5 +371,41 @@ public class Room
             targetRoom.atmosphericGasses[n] = sourceRoom.atmosphericGasses[n];
         }
     }
+
+    #region SaveLoadCode
+
+    public XmlSchema GetSchema()
+    {
+        return null;
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+        //Write Gas info
+        foreach (string k in atmosphericGasses.Keys)
+        {
+            writer.WriteStartElement("Param");
+            writer.WriteAttributeString("name", k);
+            writer.WriteAttributeString("value", atmosphericGasses[k].ToString()); //This is a bit iffy, test this more later.
+
+            writer.WriteEndElement();
+        }
+    }
+
+    public void ReadXml(XmlReader reader)
+    {
+        //Read gas info
+        if (reader.ReadToDescendant("Param"))
+        {
+            do
+            {
+                string k = reader.GetAttribute("name");
+                float v = float.Parse(reader.GetAttribute("value"));
+                atmosphericGasses[k] = v;
+            } while (reader.ReadToNextSibling("Param"));
+        }
+    }
+
+    #endregion
 
 }//Class room

@@ -50,8 +50,8 @@ public class JobSpriteController : MonoBehaviour
         if (job.jobObjectType == "Door")
         {
             //Check to see if door needs to be rotated 90 degrees to NS from EW
-            Tile northTile = job.tile.world.GetTileAt(job.tile.X, job.tile.Y + 1);
-            Tile southTile = job.tile.world.GetTileAt(job.tile.X, job.tile.Y - 1);
+            Tile northTile = World.current.GetTileAt(job.tile.X, job.tile.Y + 1);
+            Tile southTile = World.current.GetTileAt(job.tile.X, job.tile.Y - 1);
 
             if (northTile != null && southTile != null && northTile.furniture != null && southTile.furniture != null &&
                     northTile.furniture.objectType == "Wall" && southTile.furniture.objectType == "Wall")
@@ -61,8 +61,8 @@ public class JobSpriteController : MonoBehaviour
         }
 
         //TODO Only does furniture atm.
-        job.RegisterJobCompleteCallback(OnJobEnded);
-        job.RegisterJobCancelCallback(OnJobEnded);
+        job.RegisterJobCompletedCallback(OnJobEnded);
+        job.RegisterJobStoppedCallback(OnJobEnded);
 
     }
 
@@ -75,8 +75,8 @@ public class JobSpriteController : MonoBehaviour
 
         GameObject job_go = jobGameObjectMap[j];
 
-        j.UnregisterJobCompleteCallback(OnJobEnded);
-        j.UnregisterJobCancelCallback(OnJobEnded);
+        j.UnregisterJobCompletedCallback(OnJobEnded);
+        j.UnregisterJobStoppedCallback(OnJobEnded);
 
         Destroy(job_go);
 

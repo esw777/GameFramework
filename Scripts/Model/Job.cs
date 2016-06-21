@@ -13,6 +13,11 @@ public class Job
     //How long Job takes
     public float jobTime { get; protected set; }
 
+    protected float jobTimeRequired;
+
+    //Whether this job has cycles of work or is just a one-off thing.
+    protected bool jobRepeats = false;
+
     //Whether the job requires the character to be in same tile or only adjacent. Used in pathfinding.
     //True = same tile. False = adjacent
     public bool characterStandOnTile {get; protected set;}
@@ -24,11 +29,14 @@ public class Job
     //TODO again not the best way to do this.
     public Furniture furniturePrototype;
 
-    //Call when job is complete (jobTime = 0)
-    Action<Job> cbJobComplete;
+    //Piece of furniture that owns this job. (Usually will be null)
+    public Furniture furniture;
 
-    //Call when job is cancled
-    Action<Job> cbJobCancel;
+    //Call when job is complete (jobTime = 0)
+    Action<Job> cbJobCompleted;
+
+    //Call when job is cancled or stopped
+    Action<Job> cbJobStopped;
 
     //Call when job is worked on
     Action<Job> cbJobWorked;
@@ -37,13 +45,14 @@ public class Job
 
     public Dictionary<string, Inventory> inventoryRequirements;
 
-    public Job(Tile tile, string jobObjectType, Action<Job> cbJobComplete, float jobTime, Inventory[] invReqs, bool characterStandOnTile = true)
+    public Job(Tile tile, string jobObjectType, Action<Job> cbJobComplete, float jobTime, Inventory[] invReqs, bool characterStandOnTile = true, bool jobRepeats = false)
     {
         this.tile = tile;
         this.jobObjectType = jobObjectType;
-        this.cbJobComplete = cbJobComplete;
-        this.jobTime = jobTime;
+        this.cbJobCompleted = cbJobComplete;
+        this.jobTimeRequired = this.jobTime = jobTime;
         this.characterStandOnTile = characterStandOnTile;
+        this.jobRepeats = jobRepeats;
 
         //Deep copy the job requirements
         this.inventoryRequirements = new Dictionary<string, Inventory>();
@@ -60,7 +69,7 @@ public class Job
     {
         this.tile = other.tile;
         this.jobObjectType = other.jobObjectType;
-        this.cbJobComplete = other.cbJobComplete;
+        this.cbJobCompleted = other.cbJobCompleted;
         this.jobTime = other.jobTime;
         this.characterStandOnTile = other.characterStandOnTile;
 
@@ -103,21 +112,35 @@ public class Job
 
         if (jobTime <= 0)
         {
-            if (cbJobComplete != null)
+            if (cbJobCompleted != null)
             {
-                cbJobComplete(this);
+                cbJobCompleted(this);
+            }
+
+            if(jobRepeats == false)
+            {
+                if(cbJobStopped != null)
+                {
+                    cbJobStopped(this);
+                }
+            }
+
+            else
+            {
+                //Repeating job, reset the cycle.
+                jobTime += jobTimeRequired;
             }
         }
     }
 
     public void CancelJob()
     {
-        if (cbJobCancel != null)
+        if (cbJobStopped != null)
         {
-            cbJobCancel(this);
+            cbJobStopped(this);
         }
 
-        tile.world.jobQueue.Remove(this); //TODO tile may be null?
+        World.current.jobQueue.Remove(this); //TODO tile may be null?
     }
 
     public bool HasAllRequiredMaterials()
@@ -164,24 +187,24 @@ public class Job
     }
 
     #region Callbacks
-    public void RegisterJobCompleteCallback(Action<Job> cb)
+    public void RegisterJobCompletedCallback(Action<Job> cb)
     {
-        cbJobComplete += cb;
+        cbJobCompleted += cb;
     }
 
-    public void UnregisterJobCompleteCallback(Action<Job> cb)
+    public void UnregisterJobCompletedCallback(Action<Job> cb)
     {
-        cbJobComplete -= cb;
+        cbJobCompleted -= cb;
     }
 
-    public void RegisterJobCancelCallback(Action<Job> cb)
+    public void RegisterJobStoppedCallback(Action<Job> cb)
     {
-        cbJobCancel += cb;
+        cbJobStopped += cb;
     }
 
-    public void UnregisterJobCancelCallback(Action<Job> cb)
+    public void UnregisterJobStoppedCallback(Action<Job> cb)
     {
-        cbJobCancel -= cb;
+        cbJobStopped -= cb;
     }
 
     public void RegisterJobWorkedCallback(Action<Job> cb)

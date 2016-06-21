@@ -34,6 +34,8 @@ public class World : IXmlSerializable
 
     public JobQueue jobQueue;
 
+    static public World current { get; protected set; }   
+
 	public World(int width, int height)
     {
         GenerateWorld();
@@ -52,6 +54,21 @@ public class World : IXmlSerializable
     public Room GetOutsideRoom()
     {
         return roomList[0];
+    }
+
+    public int GetRoomID(Room r)
+    {
+        return roomList.IndexOf(r);
+    }
+
+    public Room GetRoomFromID(int i)
+    {
+        if (i < 0 || i > roomList.Count -1)
+        {
+            return null; //Prevent out of bounds.
+        }
+
+        return roomList[i];
     }
 
     public void AddRoom(Room r)
@@ -92,20 +109,23 @@ public class World : IXmlSerializable
     public void SetupWorld(int width, int height)
     {
         //Generates the objects in the world
+        jobQueue = new JobQueue();
+     
         Width = width;
         Height = height;
 
-        jobQueue = new JobQueue();
+        //Set static access to this world.
+        current = this;
 
         tiles = new Tile[Width, Height];
         roomList = new List<Room>();
-        roomList.Add(new Room(this)); //"Outside" is considered one giant room. An empty map will be one giant room.
+        roomList.Add(new Room()); //"Outside" is considered one giant room. An empty map will be one giant room.
 
         for (int x = 0; x < Width; x++)
         {
             for (int y = 0; y < Height; y++)
             {
-                tiles[x, y] = new Tile(this, x, y);
+                tiles[x, y] = new Tile(x, y);
                 tiles[x, y].RegisterTileTypeChangedCallback(OnTileChanged);
                 tiles[x, y].room = roomList[0]; //Room 0 is "outside" 
             }
@@ -138,9 +158,9 @@ public class World : IXmlSerializable
 		furniturePrototypes = new Dictionary<string, Furniture>();
         furnitureJobPrototypes = new Dictionary<string, Job>();
 
-		furniturePrototypes.Add("Wall", 
+		furniturePrototypes.Add("SteelWall", 
 			new Furniture(
-								"Wall",
+                                "SteelWall",
 								0,  // Movecost, 0 = impassable
                                 1,  // Width
 								1,  // Height
@@ -148,8 +168,8 @@ public class World : IXmlSerializable
                                 true  // isRoomBorder - the "Room" code will consider this furniture type a border
                             )
 		);
-        furnitureJobPrototypes.Add("Wall",
-                new Job(null, "Wall", FurnitureActions.JobComplete_FurnitureBuilding, 1f, new Inventory[] { new Inventory("Steel Plate", 5, 0) }, false)
+        furnitureJobPrototypes.Add("SteelWall",
+                new Job(null, "SteelWall", FurnitureActions.JobCompleted_FurnitureBuilding, 1f, new Inventory[] { new Inventory("Steel Plate", 5, 0) }, false)
         );
 
         
@@ -185,15 +205,15 @@ public class World : IXmlSerializable
         new Job(
             null,
             "Stockpile", 
-            FurnitureActions.JobComplete_FurnitureBuilding, 
+            FurnitureActions.JobCompleted_FurnitureBuilding, 
             -1, 
             null)
         );
 
 
-        furniturePrototypes.Add("Oxygen_Generator",
+        furniturePrototypes.Add("Oxygen Generator",
             new Furniture(
-                    "Oxygen_Generator",
+                    "Oxygen Generator",
                     10,  // Movecost
                     2,  // Width
                     2,  // Height
@@ -201,8 +221,22 @@ public class World : IXmlSerializable
                     false  // isRoomBorder - the "Room" code will consider this furniture type a border
                 )
             );
+        furniturePrototypes["Oxygen Generator"].RegisterUpdateAction(FurnitureActions.OxygenGenerator_UpdateAction);
 
-        furniturePrototypes["Oxygen_Generator"].RegisterUpdateAction(FurnitureActions.OxygenGenerator_UpdateAction);
+        furniturePrototypes.Add("Mining Drone Station",
+            new Furniture(
+                "Mining Drone Station",
+                1,  // Movecost
+                3,  // Width
+                3,  // Height
+                false, // Links to neighbours and "sort of" becomes part of a large object
+                false  // isRoomBorder - the "Room" code will consider this furniture type a border
+            )
+        );
+        furniturePrototypes["Mining Drone Station"].jobSpotOffset = new Vector2(1, 0);
+        //furniturePrototypes["Mining Drone Station"].jobSpawnSpotOffset = new Vector2(0, 0);
+        furniturePrototypes["Mining Drone Station"].RegisterUpdateAction(FurnitureActions.MiningDroneStation_UpdateAction);
+
     }
 
     public Character CreateCharacter( Tile t)
@@ -374,6 +408,21 @@ public class World : IXmlSerializable
         writer.WriteAttributeString("Width", Width.ToString());
         writer.WriteAttributeString("Height", Height.ToString());
 
+        //Room Data   //ROOMS MUST BE LOADED BEFORE TILES
+        writer.WriteStartElement("Room");
+        foreach (Room r in roomList)
+        {
+            if(GetOutsideRoom() == r)
+            {
+                continue; //Do not write the outside TODO verify this is ok.
+            }
+
+            writer.WriteStartElement("Room");
+            r.WriteXml(writer);
+            writer.WriteEndElement();
+        }
+        writer.WriteEndElement();
+
         //Tile Data
         writer.WriteStartElement("Tiles");
         for (int x = 0; x < Width; x++)
@@ -425,6 +474,12 @@ public class World : IXmlSerializable
         {
             switch(reader.Name)
             {
+                case "Rooms":
+                    {
+                        ReadXml_Rooms(reader);
+                        break;
+                    }
+
                 case "Tiles":
                     {
                         ReadXml_Tiles(reader);
@@ -509,10 +564,34 @@ public class World : IXmlSerializable
 
             } while (reader.ReadToNextSibling("Furniture"));
 
+            /* Will save room info rather than recalculate rooms on load.
             foreach (Furniture furn in furnitureList)
             {
                 Room.ReCalculateRoomsAdd(furn, true);
             }
+            */
+        }
+    }
+
+    void ReadXml_Rooms(XmlReader reader)
+    {
+        if (reader.ReadToDescendant("Room"))
+        {
+            do
+            {
+                /*
+                int x = int.Parse(reader.GetAttribute("X"));
+                int y = int.Parse(reader.GetAttribute("Y"));
+
+                Furniture furn = PlaceFurniture(reader.GetAttribute("objectType"), tiles[x, y], false);
+                furn.ReadXml(reader);
+                */
+
+                Room r = new Room();
+                roomList.Add(r);
+                r.ReadXml(reader);
+
+            } while (reader.ReadToNextSibling("Room"));
         }
     }
 

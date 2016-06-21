@@ -17,6 +17,12 @@ public class Furniture : IXmlSerializable
 
     List<Job> jobs;
 
+    //If furniture is worked by person - where is correct spot to stand relative to bottom left tile of furniture sprite
+    public Vector2 jobSpotOffset = Vector2.zero;
+
+    //Where to spawn items created by the job.
+    public Vector2 jobSpawnSpotOffset = Vector2.zero;
+
     public Func<Furniture, Enterability> IsEnterable;
 
     public void tick(float deltaTime)
@@ -77,6 +83,8 @@ public class Furniture : IXmlSerializable
         this.Height = other.Height;
         this.tint = other.tint;
         this.linksToNeighbour = other.linksToNeighbour;
+        this.jobSpotOffset = other.jobSpotOffset;
+        this.jobSpawnSpotOffset = other.jobSpawnSpotOffset;
 
         this.furnitureParameters = new Dictionary<string, float>(other.furnitureParameters);
         jobs = new List<Job>();
@@ -146,25 +154,25 @@ public class Furniture : IXmlSerializable
             int x = tile.X;
             int y = tile.Y;
 
-            t = tile.world.GetTileAt(x, y + 1);
+            t = World.current.GetTileAt(x, y + 1);
             if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
                 // We have a Northern Neighbour
                 t.furniture.cbOnChanged(t.furniture);
             }
-            t = tile.world.GetTileAt(x + 1, y);
+            t = World.current.GetTileAt(x + 1, y);
             if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
                 // We have a Eastern Neighbour
                 t.furniture.cbOnChanged(t.furniture);
             }
-            t = tile.world.GetTileAt(x, y - 1);
+            t = World.current.GetTileAt(x, y - 1);
             if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
                 // We have a Southern Neighbour
                 t.furniture.cbOnChanged(t.furniture);
             }
-            t = tile.world.GetTileAt(x - 1, y);
+            t = World.current.GetTileAt(x - 1, y);
             if (t != null && t.furniture != null && t.furniture.cbOnChanged != null && t.furniture.objectType == obj.objectType)
             {
                 // We have a Western Neighbour
@@ -194,7 +202,7 @@ public class Furniture : IXmlSerializable
         {
             for (int y_off = t.Y; y_off < (t.Y + Height); y_off++)
             {
-                Tile t2 = t.world.GetTileAt(x_off, y_off);
+                Tile t2 = World.current.GetTileAt(x_off, y_off);
 
                 if (t2.furniture != null)
                 {
@@ -256,22 +264,41 @@ public class Furniture : IXmlSerializable
 
     public void AddJob(Job j)
     {
+        j.furniture = this;
         jobs.Add(j);
-        tile.world.jobQueue.Enqueue(j, true);
+        j.RegisterJobStoppedCallback(OnJobStopped);
+        World.current.jobQueue.Enqueue(j, true);
     }
 
-    public void RemoveJob(Job j)
+    void OnJobStopped(Job j)
     {
+        RemoveJob(j);
+    }
+
+    protected void RemoveJob(Job j)
+    {
+        //j.CancelJob();
+        j.UnregisterJobStoppedCallback(OnJobStopped);
         jobs.Remove(j);
-        j.CancelJob();
-        tile.world.jobQueue.Remove(j);
+        j.furniture = null;
+        World.current.jobQueue.Remove(j);
     }
 
-    public void ClearJobs()
+    protected void ClearJobs()
     {
-        foreach (Job j in jobs)
+        Job[] jobs_array = jobs.ToArray();
+        foreach (Job j in jobs_array)
         {
             RemoveJob(j);
+        }
+    }
+
+    public void CancelJobs()
+    {
+        Job[] jobs_array = jobs.ToArray();
+        foreach (Job j in jobs_array)
+        {
+            j.CancelJob();
         }
     }
 
@@ -296,8 +323,18 @@ public class Furniture : IXmlSerializable
             Room.ReCalculateRoomsDelete(this.tile);
         }
 
-        tile.world.InvalidateTileGraph();
+        World.current.InvalidateTileGraph();
 
+    }
+
+    public Tile GetJobSpotTile()
+    {
+        return World.current.GetTileAt(tile.X + (int)jobSpotOffset.x, tile.Y + (int)jobSpotOffset.y);
+    }
+
+    public Tile GetSpawnSpotTile()
+    {
+        return World.current.GetTileAt(tile.X + (int)jobSpawnSpotOffset.x, tile.Y + (int)jobSpawnSpotOffset.y);
     }
 
     #region SaveLoadCode
@@ -322,9 +359,6 @@ public class Furniture : IXmlSerializable
 
             writer.WriteEndElement();
         }
-
-
-
     }
 
     public void ReadXml(XmlReader reader)
@@ -339,8 +373,6 @@ public class Furniture : IXmlSerializable
                 float v = float.Parse(reader.GetAttribute("value"));
                 furnitureParameters[k] = v;
             } while (reader.ReadToNextSibling("Param"));
-
-
         }
     }
 

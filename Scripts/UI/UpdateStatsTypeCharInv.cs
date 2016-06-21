@@ -2,15 +2,15 @@
 using System.Collections;
 using UnityEngine.UI;
 
-public class MouseOverRoomIndexText : MonoBehaviour
+public class UpdateStatsTypeCharInv : MonoBehaviour
 {
     //This script runs every frame.
     //It identifies the tile currently under the mouse and updates 
     //  the text parameter of the UI component it is attached to.
 
     Text myText;
-    MouseController mouseController;
-    Tile tileUnderMouse;
+    Character myChar;
+    WorldController worldController;
 
     // Use this for initialization
     void Start()
@@ -24,22 +24,21 @@ public class MouseOverRoomIndexText : MonoBehaviour
             return;
         }
 
-        mouseController = GameObject.FindObjectOfType<MouseController>(); //TODO not the greatest way to access this.
-        if (mouseController == null)
+        worldController = GameObject.FindObjectOfType<WorldController>();
+
+        if (worldController != null)
         {
-            Debug.LogError("MouseController does not exist somehow");
-            return;
+            if (worldController.world.characterList.Count > 0)
+                myChar = worldController.world.characterList[0];
         }
     }
 
     // Update is called once per frame
     void Update()
     {
-        tileUnderMouse = mouseController.GetTileUnderMouse();
-
-        if (tileUnderMouse != null)
-        {
-            myText.text = "Room Index: " + (tileUnderMouse.room == null ? "None" : tileUnderMouse.room.ID.ToString());
-        }
+        if (myChar.inventory != null)
+            myText.text = "CharInv: " + myChar.inventory.objectType + ": " + myChar.inventory.stackSize.ToString();
+        else
+            myText.text = "Null";
     }
 }

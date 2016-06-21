@@ -85,13 +85,13 @@ public class Path_TileGraph
             int dY = currentTile.Y - neightbour.Y;
 
             //Check tiles to East or West.
-            if (currentTile.world.GetTileAt(currentTile.X - dX, currentTile.Y).movementCost == 0)
+            if (World.current.GetTileAt(currentTile.X - dX, currentTile.Y).movementCost == 0)
             {
                 //Unwalkable
                 return true;
             }
             //Check tiles to North and South
-            if (currentTile.world.GetTileAt(currentTile.Y - dY, currentTile.X).movementCost == 0)
+            if (World.current.GetTileAt(currentTile.Y - dY, currentTile.X).movementCost == 0)
             {
                 //Unwalkable
                 return true;
